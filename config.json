@@ -1,10 +1,10 @@
 [
   {
-    "name": "南宁市教育局",
+    "name": "南市教育局",
     "url": "https://jy.nanning.gov.cn/xxgk/fdzdgknr/jyzhgl/jydt/index.html",
     "selectors": {
       "title": "//div[@class='nav1Cont']//ul[@class='has_line']/li/a/text()",
-      "link":  "//div[@class='nav1Cont']//ul[@class='has_line']/li/a/@href",
+      "link": "//div[@class='nav1Cont']//ul[@class='has_line']/li/a/@href",
       "content": "//div[@class='pages_content']/div[@class='content article-content text-justify']/div/p/span/text()",
       "next_page": "//div/a[contains(text(), '下一页')]/@href"
     }
