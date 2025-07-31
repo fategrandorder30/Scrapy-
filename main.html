@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scrapy爬虫监控</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        danger: '#EF4444',
+                        dark: '#1E293B',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .output-container {
+                @apply bg-dark text-gray-200 rounded-lg p-4 h-[500px] overflow-y-auto font-mono text-sm;
+            }
+            .btn-primary {
+                @apply bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-lg transition-all duration-300 flex items-center gap-2;
+            }
+            .btn-disabled {
+                @apply bg-gray-400 cursor-not-allowed text-gray-700;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <header class="bg-white shadow-sm py-4 px-6">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <i class="fa fa-spider text-primary"></i>
+                Scrapy爬虫监控
+            </h1>
+            <div class="text-gray-500 text-sm">
+                实时监控爬虫运行状态
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto py-8 px-6">
+        <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md p-6">
+            <!-- 控制区域 -->
+            <div class="mb-6 flex flex-wrap gap-4 items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-800">gov_policy爬虫</h2>
+                    <p class="text-gray-500 mt-1">启动并监控政策爬虫的运行过程</p>
+                </div>
+                <button id="startBtn" class="btn-primary">
+                    <i class="fa fa-play"></i>
+                    启动爬虫
+                </button>
+            </div>
+            
+            <!-- 状态指示 -->
+            <div id="statusIndicator" class="mb-4 hidden">
+                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                    <i class="fa fa-circle-o-notch fa-spin mr-2"></i>
+                    <span>爬虫正在运行中...</span>
+                </div>
+            </div>
+            
+            <!-- 输出显示区域 -->
+            <div class="mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="font-medium text-gray-700">运行输出</h3>
+                    <button id="clearBtn" class="text-gray-500 hover:text-gray-700 text-sm">
+                        <i class="fa fa-trash-o mr-1"></i> 清空
+                    </button>
+                </div>
+                <div id="output" class="output-container">
+                    <div class="text-gray-400 italic">点击"启动爬虫"按钮开始运行...</div>
+                </div>
+            </div>
+            
+            <!-- 信息提示 -->
+            <div class="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">
+                <i class="fa fa-info-circle text-primary mr-1"></i>
+                提示：爬虫运行过程中会实时显示输出信息，请勿频繁点击启动按钮。
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white border-t mt-8 py-4 px-6">
+        <div class="container mx-auto text-center text-gray-500 text-sm">
+            &copy; 2023 Scrapy爬虫监控系统
+        </div>
+    </footer>
+
+    <script>
+        // 获取DOM元素
+        const startBtn = document.getElementById('startBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const outputContainer = document.getElementById('output');
+        const statusIndicator = document.getElementById('statusIndicator');
+        
+        let isRunning = false;
+        
+        // 清空输出
+        clearBtn.addEventListener('click', () => {
+            outputContainer.innerHTML = '<div class="text-gray-400 italic">输出已清空</div>';
+        });
+        
+        // 启动爬虫
+        startBtn.addEventListener('click', async () => {
+            if (isRunning) return;
+            
+            // 重置状态
+            outputContainer.innerHTML = '';
+            isRunning = true;
+            startBtn.disabled = true;
+            startBtn.classList.add('btn-disabled');
+            startBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 运行中...';
+            statusIndicator.classList.remove('hidden');
+            
+            try {
+                // 调用API
+                const response = await fetch('http://localhost:8000/start_scrapy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API请求失败: ${response.statusText}`);
+                }
+                
+                // 处理流式响应
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    // 将新内容添加到输出区域
+                    const text = decoder.decode(value, { stream: true });
+                    const div = document.createElement('div');
+                    div.className = 'mb-1';
+                    div.textContent = text;
+                    outputContainer.appendChild(div);
+                    
+                    // 自动滚动到底部
+                    outputContainer.scrollTop = outputContainer.scrollHeight;
+                }
+            } catch (error) {
+                // 显示错误信息
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'text-danger mb-1';
+                errorDiv.textContent = `错误: ${error.message}`;
+                outputContainer.appendChild(errorDiv);
+            } finally {
+                // 恢复状态
+                isRunning = false;
+                startBtn.disabled = false;
+                startBtn.classList.remove('btn-disabled');
+                startBtn.innerHTML = '<i class="fa fa-play"></i> 启动爬虫';
+                statusIndicator.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
