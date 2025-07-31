@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scrapy爬虫监控</title>
+    <title>Scrapy爬虫</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     
-    <!-- 配置Tailwind自定义颜色和字体 -->
     <script>
         tailwind.config = {
             theme: {
@@ -58,7 +57,37 @@
 
     <main class="flex-grow container mx-auto py-8 px-6">
         <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md p-6">
-            <!-- 控制区域 -->
+            <form id="configForm" class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div>
+                    <label class="block text-gray-700 font-medium mb-1">站点名称</label>
+                    <input type="text" id="name" class="w-full border rounded px-3 py-2" placeholder="如：南宁市教育局" required>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-1">起始URL</label>
+                    <input type="text" id="url" class="w-full border rounded px-3 py-2" placeholder="如：https://www.gd.gov.cn/zwgk/zcjd/" required>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-1">标题XPath</label>
+                    <input type="text" id="title" class="w-full border rounded px-3 py-2" placeholder="如：//div[@id='zwgk_list']//a/text()" required>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-1">链接XPath</label>
+                    <input type="text" id="link" class="w-full border rounded px-3 py-2" placeholder="如：//div[@id='zwgk_list']//a/@href" required>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-1">正文XPath</label>
+                    <input type="text" id="content" class="w-full border rounded px-3 py-2" placeholder="如：//div[@class='content']//p/text()" required>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-1">下一页XPath</label>
+                    <input type="text" id="next_page" class="w-full border rounded px-3 py-2" placeholder="如：//a[text()='下一页']/@href" required>
+                </div>
+                <div class="md:col-span-2 flex justify-end mt-2">
+                    <button type="submit" id="submitFormBtn" class="btn-primary">
+                        <i class="fa fa-check"></i> 保存配置
+                    </button>
+                </div>
+            </form>
             <div class="mb-6 flex flex-wrap gap-4 items-center justify-between">
                 <div>
                     <h2 class="text-xl font-semibold text-gray-800">gov_policy爬虫</h2>
@@ -69,16 +98,12 @@
                     启动爬虫
                 </button>
             </div>
-            
-            <!-- 状态指示 -->
             <div id="statusIndicator" class="mb-4 hidden">
                 <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
                     <i class="fa fa-circle-o-notch fa-spin mr-2"></i>
                     <span>爬虫正在运行中...</span>
                 </div>
             </div>
-            
-            <!-- 输出显示区域 -->
             <div class="mb-4">
                 <div class="flex justify-between items-center mb-2">
                     <h3 class="font-medium text-gray-700">运行输出</h3>
@@ -90,8 +115,6 @@
                     <div class="text-gray-400 italic">点击"启动爬虫"按钮开始运行...</div>
                 </div>
             </div>
-            
-            <!-- 信息提示 -->
             <div class="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">
                 <i class="fa fa-info-circle text-primary mr-1"></i>
                 提示：爬虫运行过程中会实时显示输出信息，请勿频繁点击启动按钮。
@@ -106,33 +129,62 @@
     </footer>
 
     <script>
-        // 获取DOM元素
         const startBtn = document.getElementById('startBtn');
         const clearBtn = document.getElementById('clearBtn');
         const outputContainer = document.getElementById('output');
         const statusIndicator = document.getElementById('statusIndicator');
+        const configForm = document.getElementById('configForm');
+        const submitFormBtn = document.getElementById('submitFormBtn');
         
         let isRunning = false;
-        
-        // 清空输出
+
+        configForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        submitFormBtn.disabled = true;
+        submitFormBtn.classList.add('btn-disabled');
+        submitFormBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 保存中...';
+
+        const payload = {
+            name: document.getElementById('name').value,
+            url: document.getElementById('url').value,
+            title: document.getElementById('title').value,
+            link: document.getElementById('link').value,
+            content: document.getElementById('content').value,
+            next_page: document.getElementById('next_page').value
+        };
+
+        try {
+            const resp = await fetch('http://localhost:8000/submit_form', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await resp.json();
+            if (resp.ok) {
+                alert('配置保存成功！');
+            } else {
+                alert('保存失败: ' + (data.detail || '未知错误'));
+            }
+        } catch (err) {
+            alert('保存失败: ' + err.message);
+        } finally {
+            submitFormBtn.disabled = false;
+            submitFormBtn.classList.remove('btn-disabled');
+            submitFormBtn.innerHTML = '<i class="fa fa-check"></i> 保存配置';
+        }
+    });
         clearBtn.addEventListener('click', () => {
             outputContainer.innerHTML = '<div class="text-gray-400 italic">输出已清空</div>';
         });
-        
-        // 启动爬虫
         startBtn.addEventListener('click', async () => {
             if (isRunning) return;
-            
-            // 重置状态
             outputContainer.innerHTML = '';
             isRunning = true;
             startBtn.disabled = true;
             startBtn.classList.add('btn-disabled');
             startBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 运行中...';
             statusIndicator.classList.remove('hidden');
-            
             try {
-                // 调用API
                 const response = await fetch('http://localhost:8000/start_scrapy', {
                     method: 'POST',
                     headers: {
@@ -143,33 +195,25 @@
                 if (!response.ok) {
                     throw new Error(`API请求失败: ${response.statusText}`);
                 }
-                
-                // 处理流式响应
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-                    
-                    // 将新内容添加到输出区域
                     const text = decoder.decode(value, { stream: true });
                     const div = document.createElement('div');
                     div.className = 'mb-1';
                     div.textContent = text;
                     outputContainer.appendChild(div);
-                    
-                    // 自动滚动到底部
                     outputContainer.scrollTop = outputContainer.scrollHeight;
                 }
             } catch (error) {
-                // 显示错误信息
                 const errorDiv = document.createElement('div');
                 errorDiv.className = 'text-danger mb-1';
                 errorDiv.textContent = `错误: ${error.message}`;
                 outputContainer.appendChild(errorDiv);
             } finally {
-                // 恢复状态
                 isRunning = false;
                 startBtn.disabled = false;
                 startBtn.classList.remove('btn-disabled');
