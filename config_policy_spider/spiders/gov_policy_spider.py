@@ -26,7 +26,7 @@ class GovPolicySpider(scrapy.Spider):
         'FEED_URI': 'policies.json',
         'FEED_EXPORT_ENCODING': 'utf-8',
         # 日志级别 (DEBUG 会输出详细信息，便于调试)
-        'LOG_LEVEL': 'INFO',
+        'LOG_LEVEL': 'DEBUG',
         # 设置默认请求头，模拟浏览器访问
         'DEFAULT_REQUEST_HEADERS': {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',

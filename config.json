@@ -1,12 +1,12 @@
 [
   {
-    "name": "南宁市教育局",
-    "url": "https://jy.nanning.gov.cn/xxgk/fdzdgknr/jyzhgl/jydt/index.html",
+    "name": "广东省人民政府",
+    "url": "https://www.gd.gov.cn/zwgk/wjk/qbwj/index.html",
     "selectors": {
-      "title": "//div[@class='nav1Cont']//ul[@class='has_line']/li/a/text()",
-      "link": "//div[@class='nav1Cont']//ul[@class='has_line']/li/a/@href",
-      "content": "//div[@class='pages_content']/div[@class='content article-content text-justify']/div/p/span/text()",
-      "next_page": "//div/a[contains(text(), '下一页')]/@href"
+      "title": "//div[@class='viewList']/ul/li/span/a/text()",
+      "link": "//div[@class='viewList']/ul/li/span/a/@href",
+      "content": "//div[@class='viewList left']/div[@class='zw']/p/text()",
+      "next_page": "//div[@class='page']/a[contains(text(), '下一页')]/@href"
     }
   }
 ]
