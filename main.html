@@ -74,11 +74,22 @@
                     <label class="block text-gray-700 font-medium mb-1">链接XPath</label>
                     <input type="text" id="link" class="w-full border rounded px-3 py-2" placeholder="如：//div[@id='zwgk_list']//a/@href" required>
                 </div>
-                <div>
-                    <label class="block text-gray-700 font-medium mb-1">正文XPath</label>
-                    <input type="text" id="content" class="w-full border rounded px-3 py-2" placeholder="如：//div[@class='content']//p/text()" required>
+                <div class="md:col-span-2">
+                    <label class="block text-gray-700 font-medium mb-1">正文XPath (支持多个)</label>
+                    <div id="contentContainer">
+                        <div class="flex items-center gap-2 mb-2">
+                            <input type="text" class="content-xpath w-full border rounded px-3 py-2" placeholder="如：//div[@class='content']//p/text()" required>
+                            <button type="button" class="add-content-btn bg-secondary text-white px-3 py-2 rounded hover:bg-secondary/90">
+                                <i class="fa fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-500 mt-1">
+                        <i class="fa fa-info-circle mr-1"></i>
+                        可以添加多个XPath选择器来提取不同部分的内容
+                    </div>
                 </div>
-                <div>
+                <div class="md:col-span-2">
                     <label class="block text-gray-700 font-medium mb-1">下一页XPath</label>
                     <input type="text" id="next_page" class="w-full border rounded px-3 py-2" placeholder="如：//a[text()='下一页']/@href" required>
                 </div>
@@ -88,6 +99,7 @@
                     </button>
                 </div>
             </form>
+            
             <div class="mb-6 flex flex-wrap gap-4 items-center justify-between">
                 <div>
                     <h2 class="text-xl font-semibold text-gray-800">gov_policy爬虫</h2>
@@ -150,8 +162,76 @@
         const pauseBtn = document.getElementById('pauseBtn');
         const resumeBtn = document.getElementById('resumeBtn');
         const stopBtn = document.getElementById('stopBtn');
+        const contentContainer = document.getElementById('contentContainer');
         
         let isRunning = false;
+
+        // 添加内容选择器功能
+        function addContentRow() {
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2 mb-2';
+            div.innerHTML = `
+                <input type="text" class="content-xpath w-full border rounded px-3 py-2" placeholder="如：//div[@class='sidebar']//p/text()">
+                <button type="button" class="remove-content-btn bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600">
+                    <i class="fa fa-minus"></i>
+                </button>
+            `;
+            contentContainer.appendChild(div);
+            
+            // 为删除按钮添加事件监听
+            div.querySelector('.remove-content-btn').addEventListener('click', () => {
+                div.remove();
+            });
+        }
+
+        // 为添加按钮添加事件监听
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.add-content-btn')) {
+                addContentRow();
+            }
+        });
+
+        // 表单提交处理
+        configForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            submitFormBtn.disabled = true;
+            submitFormBtn.classList.add('btn-disabled');
+            submitFormBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 保存中...';
+
+            // 收集所有内容XPath
+            const contentXpaths = Array.from(document.querySelectorAll('.content-xpath'))
+                .map(input => input.value.trim())
+                .filter(value => value !== '');
+
+            const payload = {
+                name: document.getElementById('name').value,
+                url: document.getElementById('url').value,
+                title: document.getElementById('title').value,
+                link: document.getElementById('link').value,
+                content: contentXpaths, // 发送为数组
+                next_page: document.getElementById('next_page').value
+            };
+
+            try {
+                const resp = await fetch('http://localhost:8000/submit_form', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    alert('配置保存成功！');
+                } else {
+                    alert('保存失败: ' + (data.detail || '未知错误'));
+                }
+            } catch (err) {
+                alert('保存失败: ' + err.message);
+            } finally {
+                submitFormBtn.disabled = false;
+                submitFormBtn.classList.remove('btn-disabled');
+                submitFormBtn.innerHTML = '<i class="fa fa-check"></i> 保存配置';
+            }
+        });
 
         pauseBtn.addEventListener('click', async () => {
             pauseBtn.disabled = true;
@@ -235,44 +315,10 @@
             }
         });
 
-        configForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        submitFormBtn.disabled = true;
-        submitFormBtn.classList.add('btn-disabled');
-        submitFormBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 保存中...';
-
-        const payload = {
-            name: document.getElementById('name').value,
-            url: document.getElementById('url').value,
-            title: document.getElementById('title').value,
-            link: document.getElementById('link').value,
-            content: document.getElementById('content').value,
-            next_page: document.getElementById('next_page').value
-        };
-
-        try {
-            const resp = await fetch('http://localhost:8000/submit_form', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const data = await resp.json();
-            if (resp.ok) {
-                alert('配置保存成功！');
-            } else {
-                alert('保存失败: ' + (data.detail || '未知错误'));
-            }
-        } catch (err) {
-            alert('保存失败: ' + err.message);
-        } finally {
-            submitFormBtn.disabled = false;
-            submitFormBtn.classList.remove('btn-disabled');
-            submitFormBtn.innerHTML = '<i class="fa fa-check"></i> 保存配置';
-        }
-    });
         clearBtn.addEventListener('click', () => {
             outputContainer.innerHTML = '<div class="text-gray-400 italic">输出已清空</div>';
         });
+
         startBtn.addEventListener('click', async () => {
             if (isRunning) return;
             outputContainer.innerHTML = '';

@@ -11,6 +11,7 @@ import re
 import psutil
 import threading
 from queue import Queue
+from typing import List
 
 app = FastAPI()
 
@@ -31,7 +32,7 @@ class FormData(BaseModel):
     url: str
     title: str
     link: str
-    content: str
+    content: List[str]
     next_page: str
 
 @app.post("/submit_form")
@@ -64,7 +65,6 @@ def scrapy_output_reader(process, queue):
         pattern = r"\[gov_policy\]"
         if re.search(pattern, line):
             queue.put(line)
-    # 读取剩余输出
     remaining_output = process.stdout.read() if process.stdout else ""
     if remaining_output:
         for line in remaining_output.splitlines(keepends=True):

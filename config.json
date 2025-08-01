@@ -5,7 +5,9 @@
     "selectors": {
       "title": "//div[@class='viewList']/ul/li/span/a/text()",
       "link": "//div[@class='viewList']/ul/li/span/a/@href",
-      "content": "//div[@class='viewList left']/div[@class='zw']/p/text()",
+      "content": [
+        "//div[@class='viewList left']/div[@class='zw']/p/text()"
+      ],
       "next_page": "//div[@class='page']/a[contains(text(), '下一页')]/@href"
     }
   }
