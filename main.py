@@ -8,8 +8,15 @@ import subprocess
 import asyncio
 import sys
 import re
+import psutil
+import threading
+from queue import Queue
 
 app = FastAPI()
+
+scrapy_pid = None
+scrapy_output_queue = Queue()
+scrapy_process = None
 
 app.add_middleware(
     CORSMiddleware,
@@ -49,26 +56,42 @@ async def submit_form(data: FormData = Body(...)):
         "data": data_entry
     }
 
+def scrapy_output_reader(process, queue):
+    while process.poll() is None:
+        line = process.stdout.readline()
+        if not line:
+            break
+        pattern = r"\[gov_policy\]"
+        if re.search(pattern, line):
+            queue.put(line)
+    # 读取剩余输出
+    remaining_output = process.stdout.read() if process.stdout else ""
+    if remaining_output:
+        for line in remaining_output.splitlines(keepends=True):
+            if re.search(pattern, line):
+                queue.put(line)
+    if process.returncode != 0:
+        queue.put(f"\n命令执行失败，返回码：{process.returncode}")
+
 async def run_scrapy_command():
-    process = subprocess.Popen(
-        "scrapy crawl gov_policy",
-        shell=True,
+    global scrapy_pid, scrapy_process, scrapy_output_queue
+    scrapy_output_queue = Queue()
+    scrapy_process = subprocess.Popen(
+        ["scrapy", "crawl", "gov_policy"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True
     )
-    while process.poll() is None:
-        if process.stdout:
-            line = process.stdout.readline()
-            pattern = r"\[gov_policy\]"
-            if line and re.search(pattern, line) is not None:
-                yield line
-                await asyncio.sleep(0.01)
-    remaining_output = process.stdout.read() if process.stdout else ""
-    if remaining_output:
-        yield remaining_output
-    if process.returncode != 0:
-        yield f"\n命令执行失败，返回码：{process.returncode}"
+    scrapy_pid = scrapy_process.pid
+    t = threading.Thread(target=scrapy_output_reader, args=(scrapy_process, scrapy_output_queue))
+    t.daemon = True
+    t.start()
+    while t.is_alive() or not scrapy_output_queue.empty():
+        try:
+            line = scrapy_output_queue.get(timeout=0.5)
+            yield line
+        except:
+            await asyncio.sleep(0.1)
 
 @app.post("/start_scrapy")
 async def start_scrapy():
@@ -79,6 +102,62 @@ async def start_scrapy():
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"启动失败：{str(e)}")
+    
+@app.post("/pause_scrapy")
+async def pause_scrapy():
+    global scrapy_pid
+    if scrapy_pid:
+        try:
+            p = psutil.Process(scrapy_pid)
+            print(f"进程ID (PID): {p.pid}")
+            print(f"名称: {p.name()}")
+            print(f"状态: {p.status()}")
+            print(f"创建时间: {p.create_time()}")
+            print(f"命令行: {p.cmdline()}")
+            print(f"可执行路径: {p.exe()}")
+            print(f"工作目录: {p.cwd()}")
+            children = p.children(recursive=True)
+            print(f"子进程数: {len(children)}")
+            for child in children:
+                child.suspend()
+            p.suspend()
+            print(f"状态: {p.status()}")
+            return {"status": "success",
+                    "message": "已暂停 Scrapy 进程"}
+        except Exception as e:
+            return {"status": "error",
+                    "message": "暂停失败"}
+    else:
+        return {"status": "error",
+                "message": "进程未启动"}
+    
+@app.post("/resume_scrapy")
+async def resume_scrapy():
+    global scrapy_pid
+    if scrapy_pid:
+        try:
+            p = psutil.Process(scrapy_pid)
+            print(f"进程ID (PID): {p.pid}")
+            print(f"名称: {p.name()}")
+            print(f"状态: {p.status()}")
+            print(f"创建时间: {p.create_time()}")
+            print(f"命令行: {p.cmdline()}")
+            print(f"可执行路径: {p.exe()}")
+            print(f"工作目录: {p.cwd()}")
+            children = p.children(recursive=True)
+            print(f"子进程数: {len(children)}")
+            for child in children:
+                child.resume()
+            p.resume()
+            print(f"状态: {p.status()}")
+            return {"status": "success",
+                    "message": "已恢复 Scrapy 进程"}
+        except Exception as e:
+            return {"status": "error",
+                    "message": "恢复失败"}
+    else:
+        return {"status": "error",
+                "message": "进程未启动"}
     
 if __name__ == "__main__":
     import uvicorn

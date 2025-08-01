@@ -97,6 +97,14 @@
                     <i class="fa fa-play"></i>
                     启动爬虫
                 </button>
+                <button id="pauseBtn" class="btn-primary">
+                    <i class="fa fa-pause"></i>
+                    暂停
+                </button>
+                <button id="resumeBtn" class="btn-primary">
+                    <i class="fa fa-play-circle"></i>
+                    恢复
+                </button>
             </div>
             <div id="statusIndicator" class="mb-4 hidden">
                 <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
@@ -135,8 +143,40 @@
         const statusIndicator = document.getElementById('statusIndicator');
         const configForm = document.getElementById('configForm');
         const submitFormBtn = document.getElementById('submitFormBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resumeBtn = document.getElementById('resumeBtn');
         
         let isRunning = false;
+
+        pauseBtn.addEventListener('click', async () => {
+            pauseBtn.disabled = true;
+            pauseBtn.classList.add('btn-disabled');
+            try {
+                const resp = await fetch('http://localhost:8000/pause_scrapy', { method: 'POST' });
+                const data = await resp.json();
+                alert(data.message);
+            } catch (err) {
+                alert('暂停失败: ' + err.message);
+            } finally {
+                pauseBtn.disabled = false;
+                pauseBtn.classList.remove('btn-disabled');
+            }
+        });
+
+        resumeBtn.addEventListener('click', async () => {
+            resumeBtn.disabled = true;
+            resumeBtn.classList.add('btn-disabled');
+            try {
+                const resp = await fetch('http://localhost:8000/resume_scrapy', { method: 'POST' });
+                const data = await resp.json();
+                alert(data.message);
+            } catch (err) {
+                alert('恢复失败: ' + err.message);
+            } finally {
+                resumeBtn.disabled = false;
+                resumeBtn.classList.remove('btn-disabled');
+            }
+        });
 
         configForm.addEventListener('submit', async (e) => {
         e.preventDefault();
