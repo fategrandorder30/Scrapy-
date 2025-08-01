@@ -109,19 +109,10 @@ async def pause_scrapy():
     if scrapy_pid:
         try:
             p = psutil.Process(scrapy_pid)
-            print(f"进程ID (PID): {p.pid}")
-            print(f"名称: {p.name()}")
-            print(f"状态: {p.status()}")
-            print(f"创建时间: {p.create_time()}")
-            print(f"命令行: {p.cmdline()}")
-            print(f"可执行路径: {p.exe()}")
-            print(f"工作目录: {p.cwd()}")
             children = p.children(recursive=True)
-            print(f"子进程数: {len(children)}")
             for child in children:
                 child.suspend()
             p.suspend()
-            print(f"状态: {p.status()}")
             return {"status": "success",
                     "message": "已暂停 Scrapy 进程"}
         except Exception as e:
@@ -137,24 +128,44 @@ async def resume_scrapy():
     if scrapy_pid:
         try:
             p = psutil.Process(scrapy_pid)
-            print(f"进程ID (PID): {p.pid}")
-            print(f"名称: {p.name()}")
-            print(f"状态: {p.status()}")
-            print(f"创建时间: {p.create_time()}")
-            print(f"命令行: {p.cmdline()}")
-            print(f"可执行路径: {p.exe()}")
-            print(f"工作目录: {p.cwd()}")
             children = p.children(recursive=True)
-            print(f"子进程数: {len(children)}")
             for child in children:
                 child.resume()
             p.resume()
-            print(f"状态: {p.status()}")
             return {"status": "success",
                     "message": "已恢复 Scrapy 进程"}
         except Exception as e:
             return {"status": "error",
                     "message": "恢复失败"}
+    else:
+        return {"status": "error",
+                "message": "进程未启动"}
+
+@app.post("/stop_scrapy")
+async def stop_scrapy():
+    global scrapy_pid, scrapy_process
+    if scrapy_pid:
+        try:
+            p = psutil.Process(scrapy_pid)
+            children = p.children(recursive=True)
+            for child in children:
+                try:
+                    child.terminate()
+                except psutil.NoSuchProcess:
+                    pass
+            p.terminate()
+            scrapy_pid = None
+            scrapy_process = None
+            return {"status": "success",
+                    "message": "已终止 Scrapy 进程"}
+        except psutil.NoSuchProcess:
+            scrapy_pid = None
+            scrapy_process = None
+            return {"status": "success",
+                    "message": "进程已经不存在，已清理状态"}
+        except Exception as e:
+            return {"status": "error",
+                    "message": f"终止失败: {str(e)}"}
     else:
         return {"status": "error",
                 "message": "进程未启动"}
