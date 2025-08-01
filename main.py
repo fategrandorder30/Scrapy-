@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 import subprocess
 import asyncio
 import sys
+import re
 
 app = FastAPI()
 
@@ -59,7 +60,8 @@ async def run_scrapy_command():
     while process.poll() is None:
         if process.stdout:
             line = process.stdout.readline()
-            if line:
+            pattern = r"\[gov_policy\]"
+            if line and re.search(pattern, line) is not None:
                 yield line
                 await asyncio.sleep(0.01)
     remaining_output = process.stdout.read() if process.stdout else ""
