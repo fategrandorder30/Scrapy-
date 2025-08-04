@@ -31,13 +31,25 @@
                 content-visibility: auto;
             }
             .output-container {
-                @apply bg-dark text-gray-200 rounded-lg p-4 h-[500px] overflow-y-auto font-mono text-sm;
+                @apply bg-dark text-gray-200 rounded-lg p-4 h-[400px] overflow-y-auto font-mono text-sm;
             }
             .btn-primary {
                 @apply bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-lg transition-all duration-300 flex items-center gap-2;
             }
             .btn-disabled {
                 @apply bg-gray-400 cursor-not-allowed text-gray-700;
+            }
+            .instance-card {
+                @apply border rounded-lg p-4 mb-3 bg-white shadow-sm;
+            }
+            .status-running {
+                @apply bg-green-100 text-green-800;
+            }
+            .status-suspended {
+                @apply bg-yellow-100 text-yellow-800;
+            }
+            .status-stopped {
+                @apply bg-red-100 text-red-800;
             }
         }
     </style>
@@ -56,7 +68,8 @@
     </header>
 
     <main class="flex-grow container mx-auto py-8 px-6">
-        <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md p-6">
+        <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-md p-6">
+            <!-- 配置表单 -->
             <form id="configForm" class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <div>
                     <label class="block text-gray-700 font-medium mb-1">站点名称</label>
@@ -100,59 +113,62 @@
                 </div>
             </form>
             
+            <!-- 启动新实例 -->
             <div class="mb-6">
                 <div class="mb-4">
-                    <h2 class="text-xl font-semibold text-gray-800">gov_policy爬虫</h2>
-                    <p class="text-gray-500 mt-1">启动并监控政策爬虫的运行过程</p>
+                    <h2 class="text-xl font-semibold text-gray-800">启动新爬虫实例</h2>
+                    <p class="text-gray-500 mt-1">创建新的爬虫实例并指定输出地址</p>
                 </div>
                 
-                <!-- 输出地址单独一行 -->
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2">输出地址</label>
-                    <input type="text" id="outputAddress" class="w-full border rounded px-3 py-2" placeholder="如：./output/data.json" value="./output/data.json">
-                </div>
-                
-                <!-- 控制按钮同一行 -->
-                <div class="flex flex-wrap gap-2">
+                <div class="flex flex-col sm:flex-row gap-4 items-end">
+                    <div class="flex-1">
+                        <label class="block text-gray-700 font-medium mb-2">输出地址</label>
+                        <input type="text" id="outputAddress" class="w-full border rounded px-3 py-2" placeholder="如：./output/data.json" value="./output/data.json">
+                    </div>
                     <button id="startBtn" class="btn-primary">
                         <i class="fa fa-play"></i>
-                        启动爬虫
+                        启动新实例
                     </button>
-                    <button id="pauseBtn" class="btn-primary">
-                        <i class="fa fa-pause"></i>
-                        暂停
+                </div>
+            </div>
+
+            <!-- 实例管理 -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">爬虫实例管理</h2>
+                    <button id="refreshBtn" class="text-primary hover:text-primary/80 text-sm flex items-center gap-1">
+                        <i class="fa fa-refresh"></i> 刷新列表
                     </button>
-                    <button id="resumeBtn" class="btn-primary">
-                        <i class="fa fa-play-circle"></i>
-                        恢复
-                    </button>
-                    <button id="stopBtn" class="btn-primary bg-red-500 hover:bg-red-600">
-                        <i class="fa fa-stop"></i>
-                        停止
-                    </button>
+                </div>
+                
+                <div id="instancesList" class="min-h-[100px]">
+                    <div class="text-gray-400 italic text-center py-8">
+                        暂无运行中的爬虫实例
+                    </div>
                 </div>
             </div>
             
-            <div id="statusIndicator" class="mb-4 hidden">
-                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                    <i class="fa fa-circle-o-notch fa-spin mr-2"></i>
-                    <span>爬虫正在运行中...</span>
-                </div>
-            </div>
+            <!-- 实时输出 -->
             <div class="mb-4">
                 <div class="flex justify-between items-center mb-2">
-                    <h3 class="font-medium text-gray-700">运行输出</h3>
-                    <button id="clearBtn" class="text-gray-500 hover:text-gray-700 text-sm">
-                        <i class="fa fa-trash-o mr-1"></i> 清空
-                    </button>
+                    <h3 class="font-medium text-gray-700">实时输出</h3>
+                    <div class="flex gap-2">
+                        <select id="instanceSelect" class="text-sm border rounded px-2 py-1">
+                            <option value="">选择实例</option>
+                        </select>
+                        <button id="clearBtn" class="text-gray-500 hover:text-gray-700 text-sm">
+                            <i class="fa fa-trash-o mr-1"></i> 清空
+                        </button>
+                    </div>
                 </div>
                 <div id="output" class="output-container">
-                    <div class="text-gray-400 italic">点击"启动爬虫"按钮开始运行...</div>
+                    <div class="text-gray-400 italic">选择一个实例查看其输出...</div>
                 </div>
             </div>
+            
             <div class="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">
                 <i class="fa fa-info-circle text-primary mr-1"></i>
-                提示：爬虫运行过程中会实时显示输出信息，请勿频繁点击启动按钮。输出地址支持 .json、.csv、.xml 等格式。
+                提示：每个爬虫实例独立运行，可以同时运行多个实例。输出地址支持 .json、.csv、.xml 等格式。
             </div>
         </div>
     </main>
@@ -167,16 +183,16 @@
         const startBtn = document.getElementById('startBtn');
         const clearBtn = document.getElementById('clearBtn');
         const outputContainer = document.getElementById('output');
-        const statusIndicator = document.getElementById('statusIndicator');
         const configForm = document.getElementById('configForm');
         const submitFormBtn = document.getElementById('submitFormBtn');
-        const pauseBtn = document.getElementById('pauseBtn');
-        const resumeBtn = document.getElementById('resumeBtn');
-        const stopBtn = document.getElementById('stopBtn');
         const contentContainer = document.getElementById('contentContainer');
         const outputAddressInput = document.getElementById('outputAddress');
+        const instancesList = document.getElementById('instancesList');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const instanceSelect = document.getElementById('instanceSelect');
         
-        let isRunning = false;
+        let currentStreamReader = null;
+        let currentPid = null;
 
         // 添加内容选择器功能
         function addContentRow() {
@@ -190,13 +206,11 @@
             `;
             contentContainer.appendChild(div);
             
-            // 为删除按钮添加事件监听
             div.querySelector('.remove-content-btn').addEventListener('click', () => {
                 div.remove();
             });
         }
 
-        // 为添加按钮添加事件监听
         document.addEventListener('click', (e) => {
             if (e.target.closest('.add-content-btn')) {
                 addContentRow();
@@ -210,7 +224,6 @@
             submitFormBtn.classList.add('btn-disabled');
             submitFormBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 保存中...';
 
-            // 收集所有内容XPath
             const contentXpaths = Array.from(document.querySelectorAll('.content-xpath'))
                 .map(input => input.value.trim())
                 .filter(value => value !== '');
@@ -220,7 +233,7 @@
                 url: document.getElementById('url').value,
                 title: document.getElementById('title').value,
                 link: document.getElementById('link').value,
-                content: contentXpaths, // 发送为数组
+                content: contentXpaths,
                 next_page: document.getElementById('next_page').value
             };
 
@@ -245,133 +258,162 @@
             }
         });
 
-        pauseBtn.addEventListener('click', async () => {
-            pauseBtn.disabled = true;
-            pauseBtn.classList.add('btn-disabled');
+        // 获取实例列表
+        async function loadInstances() {
             try {
-                const resp = await fetch('http://localhost:8000/pause_scrapy', { method: 'POST' });
+                const resp = await fetch('http://localhost:8000/list_instances');
                 const data = await resp.json();
-                alert(data.message);
-                if (data.status === "success") {
-                    statusIndicator.classList.remove('hidden');
-                    statusIndicator.innerHTML = `
-                        <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-                            <i class="fa fa-pause mr-2"></i>
-                            <span>爬虫正在暂停中...</span>
-                        </div>
-                    `;
+                
+                if (data.status === 'success') {
+                    renderInstances(data.instances);
+                    updateInstanceSelect(data.instances);
                 }
             } catch (err) {
-                alert('暂停失败: ' + err.message);
-            } finally {
-                pauseBtn.disabled = false;
-                pauseBtn.classList.remove('btn-disabled');
+                console.error('加载实例列表失败:', err);
             }
-        });
+        }
 
-        resumeBtn.addEventListener('click', async () => {
-            resumeBtn.disabled = true;
-            resumeBtn.classList.add('btn-disabled');
-            try {
-                const resp = await fetch('http://localhost:8000/resume_scrapy', { method: 'POST' });
-                const data = await resp.json();
-                alert(data.message);
-                if (data.status === "success") {
-                    statusIndicator.classList.remove('hidden');
-                    statusIndicator.innerHTML = `
-                        <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                            <i class="fa fa-circle-o-notch fa-spin mr-2"></i>
-                            <span>爬虫正在运行中...</span>
-                        </div>
-                    `;
-                }
-            } catch (err) {
-                alert('恢复失败: ' + err.message);
-            } finally {
-                resumeBtn.disabled = false;
-                resumeBtn.classList.remove('btn-disabled');
-            }
-        });
-
-        stopBtn.addEventListener('click', async () => {
-            stopBtn.disabled = true;
-            stopBtn.classList.add('btn-disabled');
-            stopBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 停止中...';
-            try {
-                const resp = await fetch('http://localhost:8000/stop_scrapy', { method: 'POST' });
-                const data = await resp.json();
-                alert(data.message);
-                if (data.status === "success") {
-                    isRunning = false;
-                    startBtn.disabled = false;
-                    startBtn.classList.remove('btn-disabled');
-                    startBtn.innerHTML = '<i class="fa fa-play"></i> 启动爬虫';
-                    statusIndicator.classList.remove('hidden');
-                    statusIndicator.innerHTML = `
-                        <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                            <i class="fa fa-stop mr-2"></i>
-                            <span>爬虫已停止</span>
-                        </div>
-                    `;
-                    // 3秒后隐藏状态指示器
-                    setTimeout(() => {
-                        statusIndicator.classList.add('hidden');
-                    }, 3000);
-                }
-            } catch (err) {
-                alert('停止失败: ' + err.message);
-            } finally {
-                stopBtn.disabled = false;
-                stopBtn.classList.remove('btn-disabled');
-                stopBtn.innerHTML = '<i class="fa fa-stop"></i> 停止';
-            }
-        });
-
-        clearBtn.addEventListener('click', () => {
-            outputContainer.innerHTML = '<div class="text-gray-400 italic">输出已清空</div>';
-        });
-
-        startBtn.addEventListener('click', async () => {
-            if (isRunning) return;
-            
-            const outputAddress = outputAddressInput.value.trim();
-            if (!outputAddress) {
-                alert('请输入输出地址');
+        // 渲染实例列表
+        function renderInstances(instances) {
+            if (instances.length === 0) {
+                instancesList.innerHTML = `
+                    <div class="text-gray-400 italic text-center py-8">
+                        暂无运行中的爬虫实例
+                    </div>
+                `;
                 return;
             }
-            
-            outputContainer.innerHTML = '';
-            isRunning = true;
-            startBtn.disabled = true;
-            startBtn.classList.add('btn-disabled');
-            startBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 运行中...';
-            statusIndicator.classList.remove('hidden');
-            statusIndicator.innerHTML = `
-                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                    <i class="fa fa-circle-o-notch fa-spin mr-2"></i>
-                    <span>爬虫正在运行中...</span>
-                </div>
-            `;
+
+            instancesList.innerHTML = instances.map(instance => {
+                const statusClass = instance.status === 'running' ? 'status-running' : 
+                                  instance.status === 'stopped' ? 'status-suspended' : 'status-stopped';
+                const statusText = instance.status === 'running' ? '运行中' : 
+                                 instance.status === 'stopped' ? '已暂停' : '已停止';
+                const createTime = new Date(instance.create_time * 1000).toLocaleString();
+                
+                return `
+                    <div class="instance-card">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-medium">PID: ${instance.pid}</span>
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">
+                                        ${statusText}
+                                    </span>
+                                </div>
+                                <div class="text-sm text-gray-500">创建时间: ${createTime}</div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="pauseInstance(${instance.pid})" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm">
+                                    <i class="fa fa-pause"></i> 暂停
+                                </button>
+                                <button onclick="resumeInstance(${instance.pid})" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">
+                                    <i class="fa fa-play"></i> 恢复
+                                </button>
+                                <button onclick="stopInstance(${instance.pid})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
+                                    <i class="fa fa-stop"></i> 停止
+                                </button>
+                                <button onclick="watchInstance(${instance.pid})" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                                    <i class="fa fa-eye"></i> 查看输出
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 更新实例选择下拉框
+        function updateInstanceSelect(instances) {
+            instanceSelect.innerHTML = '<option value="">选择实例</option>';
+            instances.forEach(instance => {
+                const option = document.createElement('option');
+                option.value = instance.pid;
+                option.textContent = `PID: ${instance.pid} (${instance.status})`;
+                instanceSelect.appendChild(option);
+            });
+        }
+
+        // 实例控制函数
+        async function pauseInstance(pid) {
             try {
-                const response = await fetch('http://localhost:8000/start_scrapy', {
+                const resp = await fetch('http://localhost:8000/pause_scrapy', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        address: outputAddress
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pid })
                 });
+                const data = await resp.json();
+                alert(data.message);
+                loadInstances();
+            } catch (err) {
+                alert('暂停失败: ' + err.message);
+            }
+        }
+
+        async function resumeInstance(pid) {
+            try {
+                const resp = await fetch('http://localhost:8000/resume_scrapy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pid })
+                });
+                const data = await resp.json();
+                alert(data.message);
+                loadInstances();
+            } catch (err) {
+                alert('恢复失败: ' + err.message);
+            }
+        }
+
+        async function stopInstance(pid) {
+            try {
+                const resp = await fetch('http://localhost:8000/stop_scrapy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pid })
+                });
+                const data = await resp.json();
+                alert(data.message);
+                loadInstances();
+            } catch (err) {
+                alert('停止失败: ' + err.message);
+            }
+        }
+
+        // 查看实例输出
+        function watchInstance(pid) {
+            instanceSelect.value = pid;
+            startWatchingOutput(pid);
+        }
+
+        // 启动输出监控
+        async function startWatchingOutput(pid) {
+            // 停止当前的流
+            if (currentStreamReader) {
+                currentStreamReader.cancel();
+                currentStreamReader = null;
+            }
+            
+            currentPid = pid;
+            outputContainer.innerHTML = `<div class="text-blue-400">正在连接到 PID: ${pid} 的输出流...</div>`;
+            
+            try {
+                const response = await fetch(`http://localhost:8000/stream_scrapy?pid=${pid}`);
                 
                 if (!response.ok) {
-                    throw new Error(`API请求失败: ${response.statusText}`);
+                    throw new Error(`连接失败: ${response.statusText}`);
                 }
+                
                 const reader = response.body.getReader();
+                currentStreamReader = reader;
                 const decoder = new TextDecoder();
+                
+                outputContainer.innerHTML = `<div class="text-green-400 mb-2">已连接到 PID: ${pid} 的输出流</div>`;
                 
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
+                    
                     const text = decoder.decode(value, { stream: true });
                     const div = document.createElement('div');
                     div.className = 'mb-1';
@@ -381,17 +423,75 @@
                 }
             } catch (error) {
                 const errorDiv = document.createElement('div');
-                errorDiv.className = 'text-danger mb-1';
-                errorDiv.textContent = `错误: ${error.message}`;
+                errorDiv.className = 'text-red-400 mb-1';
+                errorDiv.textContent = `连接错误: ${error.message}`;
                 outputContainer.appendChild(errorDiv);
-            } finally {
-                isRunning = false;
-                startBtn.disabled = false;
-                startBtn.classList.remove('btn-disabled');
-                startBtn.innerHTML = '<i class="fa fa-play"></i> 启动爬虫';
-                statusIndicator.classList.add('hidden');
+            }
+        }
+
+        // 实例选择变化处理
+        instanceSelect.addEventListener('change', (e) => {
+            const pid = e.target.value;
+            if (pid) {
+                startWatchingOutput(parseInt(pid));
+            } else {
+                if (currentStreamReader) {
+                    currentStreamReader.cancel();
+                    currentStreamReader = null;
+                }
+                outputContainer.innerHTML = '<div class="text-gray-400 italic">选择一个实例查看其输出...</div>';
             }
         });
+
+        // 清空输出
+        clearBtn.addEventListener('click', () => {
+            outputContainer.innerHTML = '<div class="text-gray-400 italic">输出已清空</div>';
+        });
+
+        // 启动新实例
+        startBtn.addEventListener('click', async () => {
+            const outputAddress = outputAddressInput.value.trim();
+            if (!outputAddress) {
+                alert('请输入输出地址');
+                return;
+            }
+            
+            startBtn.disabled = true;
+            startBtn.classList.add('btn-disabled');
+            startBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 启动中...';
+            
+            try {
+                const response = await fetch('http://localhost:8000/start_scrapy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address: outputAddress })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    alert(`新实例已启动，PID: ${data.pid}`);
+                    loadInstances();
+                } else {
+                    alert('启动失败: ' + data.message);
+                }
+            } catch (error) {
+                alert('启动失败: ' + error.message);
+            } finally {
+                startBtn.disabled = false;
+                startBtn.classList.remove('btn-disabled');
+                startBtn.innerHTML = '<i class="fa fa-play"></i> 启动新实例';
+            }
+        });
+
+        // 刷新实例列表
+        refreshBtn.addEventListener('click', loadInstances);
+
+        // 页面加载时获取实例列表
+        loadInstances();
+        
+        // 定时刷新实例列表
+        setInterval(loadInstances, 5000);
     </script>
 </body>
 </html>
