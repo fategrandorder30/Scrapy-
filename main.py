@@ -11,7 +11,7 @@ import re
 import psutil
 import threading
 from queue import Queue
-from typing import List
+from typing import List, Optional
 
 app = FastAPI()
 
@@ -34,6 +34,9 @@ class FormData(BaseModel):
     link: str
     content: List[str]
     next_page: str
+
+class AddressData(BaseModel):
+    address: Optional[str] = None
 
 @app.post("/submit_form")
 async def submit_form(data: FormData = Body(...)):
@@ -73,11 +76,14 @@ def scrapy_output_reader(process, queue):
     if process.returncode != 0:
         queue.put(f"\n命令执行失败，返回码：{process.returncode}")
 
-async def run_scrapy_command():
+async def run_scrapy_command(address = None):
     global scrapy_pid, scrapy_process, scrapy_output_queue
     scrapy_output_queue = Queue()
+    cmd = ["scrapy", "crawl", "gov_policy"]
+    if address:
+        cmd.extend(["-o", address])
     scrapy_process = subprocess.Popen(
-        ["scrapy", "crawl", "gov_policy"],
+        cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True
@@ -94,10 +100,10 @@ async def run_scrapy_command():
             await asyncio.sleep(0.1)
 
 @app.post("/start_scrapy")
-async def start_scrapy():
+async def start_scrapy(address: AddressData = Body(...)):
     try:
         return StreamingResponse(
-            run_scrapy_command(),
+            run_scrapy_command(address.address),
             media_type="text/plain"
         )
     except Exception as e:

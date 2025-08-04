@@ -17,8 +17,6 @@ class GovPolicySpider(scrapy.Spider):
         },
         'DUPEFILTER_CLASS': 'scrapy_splash.SplashAwareDupeFilter',
         'HTTPCACHE_STORAGE': 'scrapy_splash.SplashAwareFSCacheStorage',
-        'FEED_FORMAT': 'json',
-        'FEED_URI': 'policies.json',
         'FEED_EXPORT_ENCODING': 'utf-8',
         'LOG_LEVEL': 'DEBUG',
         'DEFAULT_REQUEST_HEADERS': {
