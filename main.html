@@ -106,6 +106,58 @@
                     <label class="block text-gray-700 font-medium mb-1">下一页XPath</label>
                     <input type="text" id="next_page" class="w-full border rounded px-3 py-2" placeholder="如：//a[text()='下一页']/@href" required>
                 </div>
+                
+                <!-- 新增：正则替换规则配置 -->
+                <div class="md:col-span-2 mt-6 border-t pt-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">正则替换规则 (可选)</h3>
+                    
+                    <!-- 标题替换规则 -->
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-medium mb-2">标题替换规则</label>
+                        <div id="titleReplaceContainer">
+                            <div class="flex items-center gap-2 mb-2">
+                                <input type="text" class="title-pattern w-full border rounded px-3 py-2" placeholder="正则匹配模式，如：关于(.*?)的通知">
+                                <input type="text" class="title-replacement w-full border rounded px-3 py-2" placeholder="替换为，如：【政策通知】关于\\1的重要通知">
+                                <button type="button" class="add-title-replace-btn bg-secondary text-white px-3 py-2 rounded hover:bg-secondary/90">
+                                    <i class="fa fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-500 mt-1">
+                            <i class="fa fa-info-circle mr-1"></i>
+                            可以添加多个替换规则，按顺序执行。使用 \\1, \\2 等引用捕获组
+                        </div>
+                    </div>
+                    
+                    <!-- 内容替换规则 -->
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-medium mb-2">内容替换规则</label>
+                        <div id="contentReplaceContainer">
+                            <div class="content-replace-group mb-3 p-3 border rounded-lg bg-gray-50">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm font-medium text-gray-600">内容字段 #1 的替换规则</span>
+                                    <button type="button" class="add-content-replace-group-btn bg-secondary text-white px-2 py-1 text-xs rounded">
+                                        添加内容组
+                                    </button>
+                                </div>
+                                <div class="content-replace-rules">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <input type="text" class="content-pattern w-full border rounded px-2 py-1 text-sm" placeholder="正则匹配模式">
+                                        <input type="text" class="content-replacement w-full border rounded px-2 py-1 text-sm" placeholder="替换为">
+                                        <button type="button" class="add-content-replace-btn bg-blue-500 text-white px-2 py-1 text-xs rounded">
+                                            <i class="fa fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-500 mt-1">
+                            <i class="fa fa-info-circle mr-1"></i>
+                            每个内容字段可以有多个替换规则，规则按顺序执行
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="md:col-span-2 flex justify-end mt-2">
                     <button type="submit" id="submitFormBtn" class="btn-primary">
                         <i class="fa fa-check"></i> 保存配置
@@ -206,7 +258,101 @@
             `;
             contentContainer.appendChild(div);
             
+            // 同时添加对应的内容替换规则组
+            addContentReplaceGroup();
+            
             div.querySelector('.remove-content-btn').addEventListener('click', () => {
+                const index = Array.from(contentContainer.children).indexOf(div);
+                div.remove();
+                // 同时移除对应的替换规则组
+                removeContentReplaceGroup(index);
+            });
+        }
+
+        // 添加标题替换规则
+        function addTitleReplaceRow() {
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2 mb-2';
+            div.innerHTML = `
+                <input type="text" class="title-pattern w-full border rounded px-3 py-2" placeholder="正则匹配模式">
+                <input type="text" class="title-replacement w-full border rounded px-3 py-2" placeholder="替换为">
+                <button type="button" class="remove-title-replace-btn bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600">
+                    <i class="fa fa-minus"></i>
+                </button>
+            `;
+            document.getElementById('titleReplaceContainer').appendChild(div);
+            
+            div.querySelector('.remove-title-replace-btn').addEventListener('click', () => {
+                div.remove();
+            });
+        }
+
+        // 添加内容替换规则组
+        function addContentReplaceGroup() {
+            const container = document.getElementById('contentReplaceContainer');
+            const groupIndex = container.children.length + 1;
+            
+            const div = document.createElement('div');
+            div.className = 'content-replace-group mb-3 p-3 border rounded-lg bg-gray-50';
+            div.innerHTML = `
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium text-gray-600">内容字段 #${groupIndex} 的替换规则</span>
+                    <button type="button" class="remove-content-replace-group-btn bg-red-500 text-white px-2 py-1 text-xs rounded">
+                        删除组
+                    </button>
+                </div>
+                <div class="content-replace-rules">
+                    <div class="flex items-center gap-2 mb-2">
+                        <input type="text" class="content-pattern w-full border rounded px-2 py-1 text-sm" placeholder="正则匹配模式">
+                        <input type="text" class="content-replacement w-full border rounded px-2 py-1 text-sm" placeholder="替换为">
+                        <button type="button" class="add-content-replace-btn bg-blue-500 text-white px-2 py-1 text-xs rounded">
+                            <i class="fa fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+            
+            div.querySelector('.remove-content-replace-group-btn').addEventListener('click', () => {
+                div.remove();
+                updateContentGroupLabels();
+            });
+        }
+
+        // 移除内容替换规则组
+        function removeContentReplaceGroup(index) {
+            const container = document.getElementById('contentReplaceContainer');
+            if (container.children[index]) {
+                container.children[index].remove();
+                updateContentGroupLabels();
+            }
+        }
+
+        // 更新内容组标签
+        function updateContentGroupLabels() {
+            const groups = document.querySelectorAll('.content-replace-group');
+            groups.forEach((group, index) => {
+                const label = group.querySelector('.text-gray-600');
+                if (label) {
+                    label.textContent = `内容字段 #${index + 1} 的替换规则`;
+                }
+            });
+        }
+
+        // 添加内容替换规则行
+        function addContentReplaceRow(rulesContainer) {
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2 mb-2';
+            div.innerHTML = `
+                <input type="text" class="content-pattern w-full border rounded px-2 py-1 text-sm" placeholder="正则匹配模式">
+                <input type="text" class="content-replacement w-full border rounded px-2 py-1 text-sm" placeholder="替换为">
+                <button type="button" class="remove-content-replace-btn bg-red-500 text-white px-2 py-1 text-xs rounded">
+                    <i class="fa fa-minus"></i>
+                </button>
+            `;
+            rulesContainer.appendChild(div);
+            
+            div.querySelector('.remove-content-replace-btn').addEventListener('click', () => {
                 div.remove();
             });
         }
@@ -214,6 +360,13 @@
         document.addEventListener('click', (e) => {
             if (e.target.closest('.add-content-btn')) {
                 addContentRow();
+            } else if (e.target.closest('.add-title-replace-btn')) {
+                addTitleReplaceRow();
+            } else if (e.target.closest('.add-content-replace-group-btn')) {
+                addContentReplaceGroup();
+            } else if (e.target.closest('.add-content-replace-btn')) {
+                const rulesContainer = e.target.closest('.content-replace-rules');
+                addContentReplaceRow(rulesContainer);
             }
         });
 
@@ -228,14 +381,60 @@
                 .map(input => input.value.trim())
                 .filter(value => value !== '');
 
+            // 收集标题替换规则
+            const titleReplaceRows = document.querySelectorAll('#titleReplaceContainer > div');
+            const titleReplacements = [];
+            titleReplaceRows.forEach(row => {
+                const pattern = row.querySelector('.title-pattern')?.value.trim();
+                const replacement = row.querySelector('.title-replacement')?.value.trim();
+                if (pattern && replacement) {
+                    titleReplacements.push([pattern, replacement]);
+                }
+            });
+
+            // 收集内容替换规则 - 修复：确保与内容字段数量一致
+            const contentReplaceGroups = document.querySelectorAll('.content-replace-group');
+            const contentReplacements = [];
+            
+            // 确保替换规则组的数量与内容字段数量一致
+            for (let i = 0; i < contentXpaths.length; i++) {
+                const rules = [];
+                if (contentReplaceGroups[i]) {
+                    const ruleRows = contentReplaceGroups[i].querySelectorAll('.content-replace-rules > div');
+                    ruleRows.forEach(row => {
+                        const pattern = row.querySelector('.content-pattern')?.value.trim();
+                        const replacement = row.querySelector('.content-replacement')?.value.trim();
+                        if (pattern && replacement) {
+                            rules.push([pattern, replacement]);
+                        }
+                    });
+                }
+                contentReplacements.push(rules);
+            }
+
+            // 构建正则替换规则对象
+            const regexReplacements = {};
+            if (titleReplacements.length > 0) {
+                regexReplacements.title = titleReplacements;
+            }
+            // 修复：检查是否有任何内容字段有替换规则，而不是只检查数组长度
+            if (contentReplacements.some(rules => rules.length > 0)) {
+                regexReplacements.content = contentReplacements;
+            }
+
             const payload = {
                 name: document.getElementById('name').value,
                 url: document.getElementById('url').value,
                 title: document.getElementById('title').value,
                 link: document.getElementById('link').value,
                 content: contentXpaths,
-                next_page: document.getElementById('next_page').value
+                next_page: document.getElementById('next_page').value,
+                regex_replacements: Object.keys(regexReplacements).length > 0 ? regexReplacements : null
             };
+
+            // 调试输出
+            console.log('提交的数据:', JSON.stringify(payload, null, 2));
+            console.log('内容替换规则详情:', contentReplacements);
 
             try {
                 const resp = await fetch('http://localhost:8000/submit_form', {
@@ -246,11 +445,14 @@
                 const data = await resp.json();
                 if (resp.ok) {
                     alert('配置保存成功！');
+                    console.log('保存成功:', data);
                 } else {
                     alert('保存失败: ' + (data.detail || '未知错误'));
+                    console.error('保存失败:', data);
                 }
             } catch (err) {
                 alert('保存失败: ' + err.message);
+                console.error('请求错误:', err);
             } finally {
                 submitFormBtn.disabled = false;
                 submitFormBtn.classList.remove('btn-disabled');

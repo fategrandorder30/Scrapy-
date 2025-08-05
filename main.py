@@ -11,7 +11,7 @@ import re
 import psutil
 import threading
 from queue import Queue
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 
 app = FastAPI()
 
@@ -26,6 +26,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 定义正则替换规则的模型
+class RegexReplacementStep(BaseModel):
+    pattern: str  # 正则匹配模式
+    repl: str     # 替换字符串
+
+class FieldReplacements(BaseModel):
+    steps: List[RegexReplacementStep]  # 一个字段的多步替换规则
+
 class FormData(BaseModel):
     name: str
     url: str
@@ -33,6 +41,8 @@ class FormData(BaseModel):
     link: str
     content: List[str]
     next_page: str
+    # 可选的正则替换规则，结构为：{字段名: 替换规则列表}
+    regex_replacements: Optional[dict[str, Any]] = None  # 支持单字段单规则或多字段多规则
 
 class AddressData(BaseModel):
     address: Optional[str] = None
@@ -42,6 +52,7 @@ class ProcessRequest(BaseModel):
 
 @app.post("/submit_form")
 async def submit_form(data: FormData = Body(...)):
+    # 构建基础数据结构
     data_entry = {
         "name": data.name,
         "url": data.url,
@@ -52,10 +63,20 @@ async def submit_form(data: FormData = Body(...)):
             "next_page": data.next_page
         }
     }
+    
+    # 处理正则替换规则
+    if data.regex_replacements:
+        # 直接使用前端传来的格式，因为前端已经按照正确格式组织数据
+        data_entry["regex_replacements"] = data.regex_replacements
+        print(f"保存的正则替换规则: {data.regex_replacements}")  # 调试输出
+    
+    # 保存到JSON文件
     filename = "./config.json"
-    data = [data_entry]
     with open(filename, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+        json.dump([data_entry], f, ensure_ascii=False, indent=2)
+    
+    print(f"已保存配置到 {filename}")  # 调试输出
+    
     return {
         "status": "success",
         "message": "JSON数据已成功保存",
