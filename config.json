@@ -5,10 +5,10 @@
     "selectors": {
       "title": "//div[@class='viewList']/ul/li/span/a/text()",
       "link": "//div[@class='viewList']/ul/li/span/a/@href",
-      "content": [
-        "/html/body/div[3]/div[3]/div[1]/div[4]/div[2]/span/text()",
-        "/html/body/div[3]/div[3]/div[1]/div[4]/div[2]/span/text()"
-      ],
+      "content": {
+        "正文": "/html/body/div[3]/div[3]/div[1]/div[4]/div[2]/span/text()",
+        "文号": "/html/body/div[3]/div[3]/div[1]/div[4]/div[2]/span/text()"
+      },
       "next_page": "//div[@class='page']/a[contains(text(), '下一页')]/@href"
     },
     "regex_replacements": {
@@ -18,24 +18,24 @@
           "通知"
         ]
       ],
-      "content": [
-        [
+      "content": {
+        "正文": [
           [
             "(\\d{4})-(\\d{2})-(\\d{2})",
             "\\1年\\2月\\3日"
           ],
           [
-            "(\\d{4})年(\\d{2})月(\\d{2})日",
+            "\\d{4})年(\\d{2})月(\\d{2})日",
             "\\1/\\2/\\3"
           ]
         ],
-        [
+        "新字段": [
           [
             "(\\d{4})-(\\d{2})-(\\d{2})",
             "\\1年\\2月\\3日"
           ]
         ]
-      ]
+      }
     }
   }
 ]

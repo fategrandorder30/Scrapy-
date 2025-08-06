@@ -9,7 +9,7 @@ import re
 import psutil
 import threading
 from queue import Queue
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 
 app = FastAPI()
 
@@ -35,7 +35,7 @@ class FormData(BaseModel):
     url: str
     title: str
     link: str
-    content: List[str]
+    content: Union[List[str], Dict[str, str]]  # 支持列表或字典格式
     next_page: str
     regex_replacements: Optional[dict[str, Any]] = None
 
@@ -53,7 +53,7 @@ async def submit_form(data: FormData = Body(...)):
         "selectors": {
             "title": data.title,
             "link": data.link,
-            "content": data.content,
+            "content": data.content,  # 现在支持字典格式
             "next_page": data.next_page
         }
     }
