@@ -52,6 +52,7 @@
         }
     </style>
 </head>
+
 <body class="bg-gray-50 min-h-screen flex flex-col">
     <header class="bg-white shadow-sm py-4 px-6">
         <div class="container mx-auto flex justify-between items-center">
@@ -59,36 +60,34 @@
                 <i class="fa fa-spider text-primary"></i>
                 Scrapy爬虫监控
             </h1>
-            <div class="text-gray-500 text-sm">
-                实时监控爬虫运行状态
-            </div>
         </div>
     </header>
+
     <main class="flex-grow container mx-auto py-8 px-6">
         <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-md p-6">
             <form id="configForm" class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <div>
                     <label class="block text-gray-700 font-medium mb-1">站点名称</label>
-                    <input type="text" id="name" class="w-full border rounded px-3 py-2" placeholder="如：南宁市教育局" required>
+                    <input type="text" id="name" class="w-full border rounded px-3 py-2" placeholder="如：广东省人民政府" required>
                 </div>
                 <div>
                     <label class="block text-gray-700 font-medium mb-1">起始URL</label>
-                    <input type="text" id="url" class="w-full border rounded px-3 py-2" placeholder="如：https://www.gd.gov.cn/zwgk/zcjd/" required>
+                    <input type="text" id="url" class="w-full border rounded px-3 py-2" placeholder="如：https://www.gd.gov.cn/zwgk/wjk/qbwj/index.html" required>
                 </div>
                 <div>
                     <label class="block text-gray-700 font-medium mb-1">标题XPath</label>
-                    <input type="text" id="title" class="w-full border rounded px-3 py-2" placeholder="如：//div[@id='zwgk_list']//a/text()" required>
+                    <input type="text" id="title" class="w-full border rounded px-3 py-2" placeholder="如：//div[@class='viewList']/ul/li/span/a/text()" required>
                 </div>
                 <div>
                     <label class="block text-gray-700 font-medium mb-1">链接XPath</label>
-                    <input type="text" id="link" class="w-full border rounded px-3 py-2" placeholder="如：//div[@id='zwgk_list']//a/@href" required>
+                    <input type="text" id="link" class="w-full border rounded px-3 py-2" placeholder="如：//div[@class='viewList']/ul/li/span/a/@href" required>
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-gray-700 font-medium mb-1">正文XPath字段 (支持多个命名字段)</label>
                     <div id="contentContainer">
                         <div class="flex items-center gap-2 mb-2">
-                            <input type="text" class="content-field-name w-32 border rounded px-3 py-2" placeholder="字段名" value="正文" required>
-                            <input type="text" class="content-xpath flex-1 border rounded px-3 py-2" placeholder="如：//div[@class='content']//p/text()" required>
+                            <input type="text" class="content-field-name w-32 border rounded px-3 py-2" placeholder="字段名" required>
+                            <input type="text" class="content-xpath flex-1 border rounded px-3 py-2" placeholder="如：/html/body/div[3]/div[3]/div[2]/div[1]/div[2]" required>
                             <button type="button" class="add-content-btn bg-secondary text-white px-3 py-2 rounded hover:bg-secondary/90">
                                 <i class="fa fa-plus"></i>
                             </button>
@@ -101,7 +100,7 @@
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-gray-700 font-medium mb-1">下一页XPath</label>
-                    <input type="text" id="next_page" class="w-full border rounded px-3 py-2" placeholder="如：//a[text()='下一页']/@href" required>
+                    <input type="text" id="next_page" class="w-full border rounded px-3 py-2" placeholder="如：//div[@class='page']/a[contains(text(), '下一页')]/@href" required>
                 </div>
                 <div class="md:col-span-2 mt-6 border-t pt-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4">正则替换规则 (可选)</h3>
@@ -124,7 +123,7 @@
                     <div class="mb-4">
                         <label class="block text-gray-700 font-medium mb-2">内容替换规则</label>
                         <div id="contentReplaceContainer">
-                            <div class="content-replace-group mb-3 p-3 border rounded-lg bg-gray-50" data-field-name="正文">
+                            <div class="content-replace-group mb-3 p-3 border rounded-lg bg-gray-50">
                                 <div class="flex justify-between items-center mb-2">
                                     <span class="text-sm font-medium text-gray-600">字段的替换规则</span>
                                     <button type="button" class="add-content-replace-group-btn bg-secondary text-white px-2 py-1 text-xs rounded">
@@ -205,11 +204,13 @@
             </div>
         </div>
     </main>
+
     <footer class="bg-white border-t mt-8 py-4 px-6">
         <div class="container mx-auto text-center text-gray-500 text-sm">
             &copy; 2025 Scrapy爬虫监控系统
         </div>
     </footer>
+
     <script>
         const startBtn = document.getElementById('startBtn');
         const clearBtn = document.getElementById('clearBtn');
@@ -229,18 +230,15 @@
             div.className = 'flex items-center gap-2 mb-2';
             div.innerHTML = `
                 <input type="text" class="content-field-name w-32 border rounded px-3 py-2" placeholder="字段名" required>
-                <input type="text" class="content-xpath flex-1 border rounded px-3 py-2" placeholder="如：//div[@class='sidebar']//p/text()" required>
+                <input type="text" class="content-xpath flex-1 border rounded px-3 py-2" placeholder="如：/html/body/div[3]/div[3]/div[2]/div[1]/div[2]" required>
                 <button type="button" class="remove-content-btn bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600">
                     <i class="fa fa-minus"></i>
                 </button>
             `;
             contentContainer.appendChild(div);
-            
-            // 为新字段添加对应的替换规则组
             const fieldNameInput = div.querySelector('.content-field-name');
             fieldNameInput.addEventListener('input', updateContentReplaceGroups);
             addContentReplaceGroup(fieldNameInput.value || '新字段');
-            
             div.querySelector('.remove-content-btn').addEventListener('click', () => {
                 const fieldName = div.querySelector('.content-field-name').value || '新字段';
                 div.remove();
@@ -264,11 +262,10 @@
             });
         }
 
-        function addContentReplaceGroup(fieldName = '新字段') {
+        function addContentReplaceGroup() {
             const container = document.getElementById('contentReplaceContainer');
             const div = document.createElement('div');
             div.className = 'content-replace-group mb-3 p-3 border rounded-lg bg-gray-50';
-            div.setAttribute('data-field-name', fieldName);
             div.innerHTML = `
                 <div class="flex justify-end items-center mb-2">
                     <button type="button" class="remove-content-replace-group-btn bg-red-500 text-white px-2 py-1 text-xs rounded">
@@ -281,7 +278,6 @@
             div.querySelector('.remove-content-replace-group-btn').addEventListener('click', () => {
                 div.remove();
             });
-            // 添加第一个规则（不可删除）
             addContentReplaceRow(div.querySelector('.content-replace-rules'), true);
         }
 
@@ -318,10 +314,20 @@
             } else if (e.target.closest('.add-content-replace-btn')) {
                 const rulesContainer = e.target.closest('.content-replace-rules');
                 addContentReplaceRow(rulesContainer, false);
+            } else if (e.target.closest('.remove-content-btn')) {
+                const row = e.target.closest('.flex.items-center.gap-2.mb-2');
+                if (row) {
+                    const allRows = contentContainer.querySelectorAll('.flex.items-center.gap-2.mb-2');
+                    if (allRows.length > 1) {
+                        row.remove();
+                        updateContentReplaceGroups();
+                    } else {
+                        alert('至少保留一个正文字段');
+                    }
+                }
             }
         });
 
-        // 监听字段名变化以更新替换规则组
         document.addEventListener('input', (e) => {
             if (e.target.classList.contains('content-field-name')) {
                 updateContentReplaceGroups();
@@ -334,7 +340,6 @@
             submitFormBtn.classList.add('btn-disabled');
             submitFormBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 保存中...';
 
-            // 构建字典格式的content
             const contentFields = {};
             const contentRows = document.querySelectorAll('#contentContainer > div');
             contentRows.forEach(row => {
@@ -355,9 +360,8 @@
                 }
             });
 
-            // 构建字典格式的content替换规则
             const contentReplaceGroups = document.querySelectorAll('.content-replace-group');
-            const contentReplacements = {};
+            const contentReplacements = [];
             contentReplaceGroups.forEach(group => {
                 const fieldName = group.getAttribute('data-field-name');
                 const rules = [];
@@ -369,9 +373,7 @@
                         rules.push([pattern, replacement]);
                     }
                 });
-                if (rules.length > 0) {
-                    contentReplacements[fieldName] = rules;
-                }
+                contentReplacements.push(rules);
             });
 
             const regexReplacements = {};
@@ -387,7 +389,7 @@
                 url: document.getElementById('url').value,
                 title: document.getElementById('title').value,
                 link: document.getElementById('link').value,
-                content: contentFields,  // 现在是字典格式
+                content: contentFields,
                 next_page: document.getElementById('next_page').value,
                 regex_replacements: Object.keys(regexReplacements).length > 0 ? regexReplacements : null
             };

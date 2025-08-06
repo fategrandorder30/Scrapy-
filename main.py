@@ -10,6 +10,7 @@ import psutil
 import threading
 from queue import Queue
 from typing import List, Optional, Dict, Any, Union
+import signal
 
 app = FastAPI()
 
@@ -35,12 +36,12 @@ class FormData(BaseModel):
     url: str
     title: str
     link: str
-    content: Union[List[str], Dict[str, str]]  # 支持列表或字典格式
+    content: Dict[str, str]
     next_page: str
     regex_replacements: Optional[dict[str, Any]] = None
 
 class AddressData(BaseModel):
-    address: Optional[str] = None
+    address: str
 
 class ProcessRequest(BaseModel):
     pid: int
@@ -53,7 +54,7 @@ async def submit_form(data: FormData = Body(...)):
         "selectors": {
             "title": data.title,
             "link": data.link,
-            "content": data.content,  # 现在支持字典格式
+            "content": data.content,
             "next_page": data.next_page
         }
     }
@@ -61,7 +62,7 @@ async def submit_form(data: FormData = Body(...)):
         data_entry["regex_replacements"] = data.regex_replacements
     filename = "./config.json"
     with open(filename, 'w', encoding='utf-8') as f:
-        json.dump([data_entry], f, ensure_ascii=False, indent=2)
+        json.dump(data_entry, f, ensure_ascii=False, indent=4)
     return {
         "status": "success",
         "message": "JSON数据已成功保存",
@@ -81,8 +82,6 @@ def scrapy_output_reader(process, queue):
         for line in remaining_output.splitlines(keepends=True):
             if re.search(pattern, line):
                 queue.put(line)
-    if process.returncode != 0:
-        queue.put(f"\n命令执行失败，返回码：{process.returncode}")
     pid = process.pid
     if pid in scrapy_instances:
         del scrapy_instances[pid]
@@ -91,7 +90,7 @@ async def run_scrapy_command(pid: int, address = None):
     while True:
         try:
             queue = scrapy_instances[pid]["queue"]
-            line = queue.get(timeout=0.5)
+            line = queue.get(timeout=0.1)
             yield line
         except:
             if pid not in scrapy_instances or scrapy_instances[pid]["process"].poll() is not None:
@@ -108,7 +107,8 @@ async def start_scrapy(address: AddressData = Body(...)):
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True
+            text=True,
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
         )
         output_queue = Queue()
         pid = process.pid
@@ -177,22 +177,17 @@ async def stop_scrapy(req: ProcessRequest):
         return {"status": "error", "message": "爬虫实例不存在或已结束"}
     try:
         p = psutil.Process(pid)
-        children = p.children(recursive=True)
-        for child in children:
-            try:
-                child.terminate()
-            except psutil.NoSuchProcess:
-                pass
-        p.terminate()
-        if pid in scrapy_instances:
-            del scrapy_instances[pid]
-        return {"status": "success", "message": f"已终止 PID: {pid} 的爬虫进程"}
+        if hasattr(signal, "CTRL_BREAK_EVENT") and psutil.WINDOWS:
+            p.send_signal(signal.CTRL_BREAK_EVENT)
+        else:
+            p.send_signal(signal.SIGINT)
+        return {"status": "success", "message": f"已终止 PID：{pid} 的爬虫进程"}
     except psutil.NoSuchProcess:
         if pid in scrapy_instances:
             del scrapy_instances[pid]
-        return {"status": "success", "message": f"PID: {pid} 的进程已经不存在，已清理状态"}
+        return {"status": "success", "message": f"已终止 PID：{pid} 的爬虫进程"}
     except Exception as e:
-        return {"status": "error", "message": f"终止失败: {str(e)}"}
+        return {"status": "error", "message": f"终止失败：{str(e)}"}
 
 @app.get("/list_instances")
 async def list_instances():
