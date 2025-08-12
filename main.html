@@ -200,7 +200,25 @@
             </div>
             <div class="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">
                 <i class="fa fa-info-circle text-primary mr-1"></i>
-                提示：每个爬虫实例独立运行，可以同时运行多个实例。输出地址支持 .json、.csv 格式。
+                提示：每个爬虫实例独立运行，可以同时运行多个实例。输出地址支持 .csv 格式。
+            </div>
+            <div class="mb-8">
+                <h2 class="text-xl font-semibold text-gray-800 mb-2">CSV导入到PostgreSQL</h2>
+                <form id="importCsvForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
+                    <input type="text" id="db_name" class="border rounded px-3 py-2 mb-2" placeholder="数据库名 (db_name)" required>
+                    <input type="text" id="db_user" class="border rounded px-3 py-2 mb-2" placeholder="用户名 (db_user)" required>
+                    <input type="password" id="db_password" class="border rounded px-3 py-2 mb-2" placeholder="密码 (db_password)" required>
+                    <input type="text" id="db_host" class="border rounded px-3 py-2 mb-2" placeholder="主机 (db_host)" required>
+                    <input type="text" id="db_port" class="border rounded px-3 py-2 mb-2" placeholder="端口 (db_port)" required>
+                    <input type="text" id="table_name" class="border rounded px-3 py-2 mb-2" placeholder="表名 (table_name)" required>
+                    <input type="text" id="csv_file_path" class="border rounded px-3 py-2 mb-2 md:col-span-2" placeholder="CSV文件路径 (csv_file_path)" required>
+                    <div class="md:col-span-2 flex justify-end mt-2">
+                        <button type="submit" id="importCsvBtn" class="btn-primary">
+                            <i class="fa fa-upload"></i> 导入CSV
+                        </button>
+                    </div>
+                </form>
+                <div id="importCsvResult" class="text-sm text-gray-600"></div>
             </div>
         </div>
     </main>
@@ -222,6 +240,9 @@
         const instancesList = document.getElementById('instancesList');
         const refreshBtn = document.getElementById('refreshBtn');
         const instanceSelect = document.getElementById('instanceSelect');
+        const importCsvForm = document.getElementById('importCsvForm');
+        const importCsvBtn = document.getElementById('importCsvBtn');
+        const importCsvResult = document.getElementById('importCsvResult');
         let currentStreamReader = null;
         let currentPid = null;
 
@@ -615,6 +636,46 @@
         refreshBtn.addEventListener('click', loadInstances);
         loadInstances();
         setInterval(loadInstances, 5000);
+        importCsvForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            importCsvBtn.disabled = true;
+            importCsvBtn.classList.add('btn-disabled');
+            importCsvBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 导入中...';
+            importCsvResult.textContent = '';
+
+            const payload = {
+                db_name: document.getElementById('db_name').value.trim(),
+                db_user: document.getElementById('db_user').value.trim(),
+                db_password: document.getElementById('db_password').value.trim(),
+                db_host: document.getElementById('db_host').value.trim(),
+                db_port: document.getElementById('db_port').value.trim(),
+                table_name: document.getElementById('table_name').value.trim(),
+                csv_file_path: document.getElementById('csv_file_path').value.trim()
+            };
+
+            try {
+                const resp = await fetch('http://localhost:8000/import_csv_to_postgres', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await resp.json();
+                if (resp.ok && data.status === 'success') {
+                    importCsvResult.textContent = '导入成功: ' + data.message;
+                    importCsvResult.className = 'text-green-600 text-sm';
+                } else {
+                    importCsvResult.textContent = '导入失败: ' + (data.message || '未知错误');
+                    importCsvResult.className = 'text-red-600 text-sm';
+                }
+            } catch (err) {
+                importCsvResult.textContent = '请求失败: ' + err.message;
+                importCsvResult.className = 'text-red-600 text-sm';
+            } finally {
+                importCsvBtn.disabled = false;
+                importCsvBtn.classList.remove('btn-disabled');
+                importCsvBtn.innerHTML = '<i class="fa fa-upload"></i> 导入CSV';
+            }
+        });
     </script>
 </body>
 </html>
