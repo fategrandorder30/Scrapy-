@@ -200,26 +200,29 @@ async def import_csv_to_postgres_api(req: ImportCSVRequest = Body(...)):
         return {"status": "error", "message": msg}
 
 @app.post("/submit_form")
-async def submit_form(data: FormData = Body(...)):
-    data_entry = {
-        "name": data.name,
-        "url": data.url,
-        "selectors": {
-            "title": data.title,
-            "link": data.link,
-            "content": data.content,
-            "next_page": data.next_page
+async def submit_form(data: List[FormData] = Body(...)):
+    config_list = []
+    for item in data:
+        entry = {
+            "name": item.name,
+            "url": item.url,
+            "selectors": {
+                "title": item.title,
+                "link": item.link,
+                "content": item.content,
+                "next_page": item.next_page
+            }
         }
-    }
-    if data.regex_replacements:
-        data_entry["regex_replacements"] = data.regex_replacements
+        if item.regex_replacements:
+            entry["regex_replacements"] = item.regex_replacements
+        config_list.append(entry)
     filename = "./config.json"
     with open(filename, 'w', encoding='utf-8') as f:
-        json.dump(data_entry, f, ensure_ascii=False, indent=4)
+        json.dump(config_list, f, ensure_ascii=False, indent=4)
     return {
         "status": "success",
         "message": "JSON数据已成功保存",
-        "data": data_entry
+        "data": config_list
     }
 
 def scrapy_output_reader(process, queue):

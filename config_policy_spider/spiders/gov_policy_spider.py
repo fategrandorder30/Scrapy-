@@ -28,75 +28,102 @@ class GovPolicySpider(scrapy.Spider):
 
     def start_requests(self):
         with open('config.json', encoding='utf-8') as f:
-            cfg = json.load(f)
-        self.site_name = cfg['name']
-        start_url = cfg['url']
-        self.selectors = cfg['selectors']
-        self.regex_replacements = cfg.get('regex_replacements', {})
-        self.logger.info(f" 开始抓取: {self.site_name} → {start_url}")
-        yield SplashRequest(
-            url=start_url,
-            callback=self.parse_list,
-            args={
-                'wait': 3,
-                'render_all': 1
-            },
-            dont_filter=True
-        )
+            cfg_list = json.load(f)
+        # 支持顺序爬取多个网站
+        if not isinstance(cfg_list, list):
+            self.logger.error("config.json 格式错误，需为列表包裹多个配置")
+            return
+        for cfg in cfg_list:
+            site_name = cfg['name']
+            start_url = cfg['url']
+            selectors = cfg['selectors']
+            regex_replacements = cfg.get('regex_replacements', {})
+            self.logger.info(f" 开始抓取: {site_name} → {start_url}")
+            # 将配置保存到实例变量，供后续解析使用
+            meta = {
+                'site_name': site_name,
+                'selectors': selectors,
+                'regex_replacements': regex_replacements
+            }
+            yield SplashRequest(
+                url=start_url,
+                callback=self.parse_list,
+                meta=meta,
+                args={
+                    'wait': 3,
+                    'render_all': 1
+                },
+                dont_filter=True
+            )
 
     def parse_list(self, response):
+        meta = response.meta
+        site_name = meta['site_name']
+        selectors = meta['selectors']
+        regex_replacements = meta['regex_replacements']
         self.logger.info(f" 解析列表页: {response.url}")
-        titles = response.xpath(self.selectors['title']).getall()
-        links  = response.xpath(self.selectors['link']).getall()
+        titles = response.xpath(selectors['title']).getall()
+        links  = response.xpath(selectors['link']).getall()
         self.logger.info(f" 列表页共找到 {len(titles)} 条标题，{len(links)} 条链接")
         if not titles or not links:
             self.logger.warning(f" 在 {response.url} 未找到标题或链接，请检查 XPath 选择器或页面加载问题。")
-        for title, href in zip(titles, links):
+        for idx, (title, href) in enumerate(zip(titles, links)):
             title = title.strip()
-            title = self.apply_regex_replacement('title', title)
+            title = self.apply_regex_replacement('title', title, regex_replacements)
             detail_url = response.urljoin(href)
             self.logger.info(f" 准备抓取详情: {title} → {detail_url}")
+            detail_meta = {
+                'title': title,
+                'site_name': site_name,
+                'selectors': selectors,
+                'regex_replacements': regex_replacements
+            }
             yield SplashRequest(
                 url=detail_url,
                 callback=self.parse_detail,
-                meta={'title': title},
+                meta=detail_meta,
                 args={'wait': 1},
             )
-        next_href = response.xpath(self.selectors['next_page']).get()
+        next_href = response.xpath(selectors['next_page']).get()
         if next_href:
             next_url = response.urljoin(next_href)
             self.logger.info(f" 跟进下一页: {next_url}")
             yield SplashRequest(
                 url=next_url,
                 callback=self.parse_list,
+                meta=meta,
                 args={'wait': 3},
             )
         else:
             self.logger.info(" 没有找到下一页，列表解析结束。")
 
     def parse_detail(self, response):
-        title = response.meta['title']
+        meta = response.meta
+        title = meta['title']
+        site_name = meta['site_name']
+        selectors = meta['selectors']
+        regex_replacements = meta['regex_replacements']
         self.logger.info(f" 解析详情页: {title} → {response.url}")
         content_dict = {}
-        if isinstance(self.selectors["content"], dict):
-            for idx, (key, value) in enumerate(self.selectors["content"].items()):
+        if isinstance(selectors["content"], dict):
+            for idx, (key, value) in enumerate(selectors["content"].items()):
                 paras = response.xpath(value).getall()
                 content = "\n".join(p.strip() for p in paras if p.strip())
-                modified_content = self.apply_regex_replacement('content', content, index=idx)
+                modified_content = self.apply_regex_replacement('content', content, regex_replacements, index=idx)
                 content_dict[key] = modified_content
         yield {
-            'site':    self.site_name,
+            'site':    site_name,
             'title':   title,
             'url':     response.url,
             'content': content_dict,
         }
-    
-    def apply_regex_replacement(self, field_type, text, index=None):
+
+    def apply_regex_replacement(self, field_type, text, regex_replacements, index=None):
         if not text:
             return text
-        if field_type not in self.regex_replacements:
+        if field_type not in regex_replacements:
             return text
-        replacements = self.regex_replacements[field_type]
+        replacements = regex_replacements[field_type]
         field_replacements = []
         if field_type == "title":
             if isinstance(replacements, list):
