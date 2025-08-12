@@ -132,7 +132,7 @@ class GovPolicySpider(scrapy.Spider):
             if isinstance(replacements, list):
                 if index is not None and index < len(replacements):
                     content_rules = replacements[index]
-                    field_replacements = content_rules    
+                    field_replacements = content_rules
         for rule in field_replacements:
             if isinstance(rule, list) and len(rule) == 2:
                 pattern, repl = rule
