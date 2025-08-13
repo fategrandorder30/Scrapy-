@@ -135,12 +135,6 @@ def create_table(connection, table_name, df):
     finally:
         cursor.close()
 
-def expand_content_column(df):
-    content_dicts = df['content'].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) else {})
-    content_df = pd.DataFrame(content_dicts.tolist())
-    df = pd.concat([df.drop(columns=['content']), content_df], axis=1)
-    return df
-
 def insert_data(connection, table_name, df, batch_size):
     clean_columns = [col.replace(' ', '_').replace('-', '_').replace('.', '_') for col in df.columns]
     columns_str = ', '.join(clean_columns)
@@ -164,8 +158,6 @@ def insert_csv_to_postgres(connection, table_name, csv_file_path, batch_size=100
         return False, "数据库连接失败"
     try:
         df = pd.read_csv(csv_file_path)
-        if 'content' in df.columns:
-            df = expand_content_column(df)
     except Exception as e:
         return False, f"读取CSV文件时出错: {e}"
     table_exist = table_exists(connection, table_name)

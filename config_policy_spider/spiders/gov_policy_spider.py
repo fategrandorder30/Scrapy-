@@ -104,19 +104,18 @@ class GovPolicySpider(scrapy.Spider):
         selectors = meta['selectors']
         regex_replacements = meta['regex_replacements']
         self.logger.info(f" 解析详情页: {title} → {response.url}")
-        content_dict = {}
+        result = {
+            'site': site_name,
+            'title': title,
+            'url': response.url,
+        }
         if isinstance(selectors["content"], dict):
             for idx, (key, value) in enumerate(selectors["content"].items()):
                 paras = response.xpath(value).getall()
                 content = "\n".join(p.strip() for p in paras if p.strip())
-                modified_content = self.apply_regex_replacement('content', content, regex_replacements, index=idx)
-                content_dict[key] = modified_content
-        yield {
-            'site':    site_name,
-            'title':   title,
-            'url':     response.url,
-            'content': content_dict,
-        }
+                modified_content = self.apply_regex_replacement('content', content, regex_replacements, index = idx)
+                result[key] = modified_content
+        yield result
 
     def apply_regex_replacement(self, field_type, text, regex_replacements, index=None):
         if not text:

@@ -1,4 +1,4 @@
-  {
+[  {
     "name": "广东省人民政府",
     "url": "https://www.gd.gov.cn/zwgk/wjk/qbwj/index.html",
     "selectors": {
@@ -30,4 +30,4 @@
         ]
       ]
     }
-  }
+  }]
