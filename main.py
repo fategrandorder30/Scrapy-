@@ -156,26 +156,41 @@ def insert_data(connection, table_name, df, batch_size):
 def insert_csv_to_postgres(connection, table_name, csv_file_path, batch_size=1000):
     if connection is None:
         return False, "数据库连接失败"
+    
+    cursor = connection.cursor()
     try:
+        # 开始事务
+        cursor.execute("BEGIN;")
+        
         df = pd.read_csv(csv_file_path)
-    except Exception as e:
-        return False, f"读取CSV文件时出错: {e}"
-    table_exist = table_exists(connection, table_name)
-    if not table_exist:
-        if create_table(connection, table_name, df):
-            result = insert_data(connection, table_name, df, batch_size)
-            return result, "表创建并插入数据" if result else "插入数据失败"
-        return False, "创建表失败"
-    else:
-        table_column_count = get_table_column_count(connection, table_name)
-        csv_column_count = len(df.columns)
-        if table_column_count == -1:
-            return False, "无法获取表的列数信息"
-        if table_column_count != csv_column_count:
-            return False, "表列数与CSV文件列数不一致"
+        table_exist = table_exists(connection, table_name)
+        
+        if not table_exist:
+            if create_table(connection, table_name, df):
+                result = insert_data(connection, table_name, df, batch_size)
+                if result:
+                    cursor.execute("COMMIT;")
+                    return True, "表创建并插入数据成功"
+                else:
+                    cursor.execute("ROLLBACK;")
+                    return False, "插入数据失败"
+            else:
+                cursor.execute("ROLLBACK;")
+                return False, "创建表失败"
         else:
             result = insert_data(connection, table_name, df, batch_size)
-            return result, "插入数据成功" if result else "插入数据失败"
+            if result:
+                cursor.execute("COMMIT;")
+                return True, "插入数据成功"
+            else:
+                cursor.execute("ROLLBACK;")
+                return False, "插入数据失败"
+                
+    except Exception as e:
+        cursor.execute("ROLLBACK;")
+        return False, f"操作失败: {e}"
+    finally:
+        cursor.close()
         
 @app.post("/import_csv_to_postgres")
 async def import_csv_to_postgres_api(req: ImportCSVRequest = Body(...)):
