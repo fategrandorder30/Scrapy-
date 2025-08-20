@@ -39,7 +39,6 @@ class GovPolicySpider(scrapy.Spider):
             selectors = cfg['selectors']
             regex_replacements = cfg.get('regex_replacements', {})
             self.logger.info(f" 开始抓取: {site_name} → {start_url}")
-            # 将配置保存到实例变量，供后续解析使用
             meta = {
                 'site_name': site_name,
                 'selectors': selectors,
@@ -111,10 +110,13 @@ class GovPolicySpider(scrapy.Spider):
         }
         if isinstance(selectors["content"], dict):
             for idx, (key, value) in enumerate(selectors["content"].items()):
-                paras = response.xpath(value).getall()
-                content = "\n".join(p.strip() for p in paras if p.strip())
-                modified_content = self.apply_regex_replacement('content', content, regex_replacements, index = idx)
-                result[key] = modified_content
+                if not value or not value.strip():
+                    result[key] = ""
+                else:
+                    paras = response.xpath(value).getall()
+                    content = "\n".join(p.strip() for p in paras if p.strip())
+                    modified_content = self.apply_regex_replacement('content', content, regex_replacements, index = idx)
+                    result[key] = modified_content
         yield result
 
     def apply_regex_replacement(self, field_type, text, regex_replacements, index=None):

@@ -89,7 +89,7 @@
                         <div class="contentContainer">
                             <div class="flex items-center gap-2 mb-2">
                                 <input type="text" class="content-field-name w-32 border rounded px-3 py-2" placeholder="字段名" required>
-                                <input type="text" class="content-xpath flex-1 border rounded px-3 py-2" placeholder="如：/html/body/div[3]/div[3]/div[2]/div[1]/div[2]" required>
+                                <input type="text" class="content-xpath flex-1 border rounded px-3 py-2" placeholder="如：/html/body/div[3]/div[3]/div[2]/div[1]/div[2]">
                                 <button type="button" class="add-content-btn bg-secondary text-white px-3 py-2 rounded hover:bg-secondary/90">
                                     <i class="fa fa-plus"></i>
                                 </button>
@@ -352,7 +352,7 @@
             siteConfigBlock.querySelectorAll('.contentContainer > div').forEach(row => {
                 const fieldName = row.querySelector('.content-field-name')?.value.trim();
                 const xpath = row.querySelector('.content-xpath')?.value.trim();
-                if (fieldName && xpath) {
+                if (fieldName) {
                     config.content[fieldName] = xpath;
                 }
             });
@@ -405,7 +405,7 @@
             div.className = 'flex items-center gap-2 mb-2';
             div.innerHTML = `
                 <input type="text" class="content-field-name w-32 border rounded px-3 py-2" value="${fieldName}" placeholder="字段名" required>
-                <input type="text" class="content-xpath flex-1 border rounded px-3 py-2" value="${xpath}" placeholder="如：/html/body/div[3]/div[3]/div[2]/div[1]/div[2]" required>
+                <input type="text" class="content-xpath flex-1 border rounded px-3 py-2" value="${xpath}" placeholder="如：/html/body/div[3]/div[3]/div[2]/div[1]/div[2]">
                 <button type="button" class="add-content-btn bg-secondary text-white px-3 py-2 rounded hover:bg-secondary/90">
                     <i class="fa fa-plus"></i>
                 </button>

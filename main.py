@@ -159,7 +159,6 @@ def insert_csv_to_postgres(connection, table_name, csv_file_path, batch_size=100
     
     cursor = connection.cursor()
     try:
-        # 开始事务
         cursor.execute("BEGIN;")
         
         df = pd.read_csv(csv_file_path)
