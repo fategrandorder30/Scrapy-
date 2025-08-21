@@ -60,6 +60,14 @@ class AddressData(BaseModel):
 class ProcessRequest(BaseModel):
     pid: int
 
+class PostgresConfig(BaseModel):
+    dbname: str
+    user: str
+    password: str
+    host: str
+    port: str
+    table: str
+
 def create_db_connection(db_name, db_user, db_password, db_host, db_port):
     connection = None
     try:
@@ -265,6 +273,8 @@ async def start_scrapy(address: AddressData = Body(...)):
         cmd = ["scrapy", "crawl", "gov_policy"]
         if address.address:
             cmd.extend(["-o", address.address])
+            pipelines_str = ""
+            cmd.extend(["-s", f"ITEM_PIPELINES={pipelines_str}"])
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -289,6 +299,45 @@ async def start_scrapy(address: AddressData = Body(...)):
             "pid": pid,
             "stream_url": f"/stream_scrapy?pid={pid}",
             "message": "爬虫已启动"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"启动失败：{str(e)}")
+    
+@app.post("/start_scrapy_postgres")
+async def start_scrapy(postgresConfig: PostgresConfig = Body(...)):
+    try:
+        cmd = ["scrapy", "crawl", "gov_policy"]
+        cmd.extend(["-s", f"POSTGRES_DBNAME={postgresConfig.dbname}"])
+        cmd.extend(["-s", f"POSTGRES_USER={postgresConfig.user}"])
+        cmd.extend(["-s", f"POSTGRES_PASSWORD={postgresConfig.password}"])
+        cmd.extend(["-s", f"POSTGRES_HOST={postgresConfig.host}"])
+        cmd.extend(["-s", f"POSTGRES_PORT={postgresConfig.port}"])
+        cmd.extend(["-s", f"POSTGRES_TABLE={postgresConfig.table}"])
+        process = subprocess.Popen(
+            cmd,
+            stdout = subprocess.PIPE,
+            stderr = subprocess.STDOUT,
+            text = True,
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
+        )
+        output_queue = Queue()
+        pid = process.pid
+        scrapy_instances[pid] = {
+            "process": process,
+            "queue": output_queue
+        }
+        t = threading.Thread(
+            target=scrapy_output_reader,
+            args=(process, output_queue)
+        )
+        t.daemon = True
+        t.start()
+        return {
+            "status": "success",
+            "pid": pid,
+            "stream_url": f"/stream_scrapy?pid={pid}",
+            "message": "爬虫已启动（PostgreSQL模式）",
+            "command": " ".join(cmd)
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"启动失败：{str(e)}")

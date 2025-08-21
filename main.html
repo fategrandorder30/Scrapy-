@@ -191,17 +191,75 @@
             <div class="mb-6">
                 <div class="mb-4">
                     <h2 class="text-xl font-semibold text-gray-800">启动新爬虫实例</h2>
-                    <p class="text-gray-500 mt-1">创建新的爬虫实例并指定输出地址</p>
+                    <p class="text-gray-500 mt-1">选择输出方式：文件输出或数据库输出</p>
                 </div>
-                <div class="flex flex-col sm:flex-row gap-4 items-end">
-                    <div class="flex-1">
-                        <label class="block text-gray-700 font-medium mb-2">输出地址</label>
-                        <input type="text" id="outputAddress" class="w-full border rounded px-3 py-2" placeholder="如：./output/data.csv">
+
+                <!-- 输出方式选择 -->
+                <div class="mb-4">
+                    <div class="flex gap-4">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="outputMode" value="file" class="mr-2" checked>
+                            <span class="text-gray-700">输出到文件</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="outputMode" value="database" class="mr-2">
+                            <span class="text-gray-700">输出到PostgreSQL数据库</span>
+                        </label>
                     </div>
-                    <button id="startBtn" class="btn-primary">
-                        <i class="fa fa-play"></i>
-                        启动新实例
-                    </button>
+                </div>
+
+                <!-- 文件输出配置 -->
+                <div id="fileOutputConfig" class="mb-4">
+                    <div class="flex flex-col sm:flex-row gap-4 items-end">
+                        <div class="flex-1">
+                            <label class="block text-gray-700 font-medium mb-2">输出地址</label>
+                            <input type="text" id="outputAddress" class="w-full border rounded px-3 py-2" placeholder="如：./output/data.csv">
+                        </div>
+                        <button id="startFileBtn" class="btn-primary">
+                            <i class="fa fa-play"></i>
+                            启动文件输出实例
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 数据库输出配置 -->
+                <div id="databaseOutputConfig" class="mb-4" style="display: none;">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">数据库名</label>
+                            <input type="text" id="pgDbname" class="w-full border rounded px-3 py-2" placeholder="postgres" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">用户名</label>
+                            <input type="text" id="pgUser" class="w-full border rounded px-3 py-2" placeholder="postgres" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">密码</label>
+                            <input type="password" id="pgPassword" class="w-full border rounded px-3 py-2" placeholder="password" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">主机地址</label>
+                            <input type="text" id="pgHost" class="w-full border rounded px-3 py-2" placeholder="localhost" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">端口</label>
+                            <input type="text" id="pgPort" class="w-full border rounded px-3 py-2" placeholder="5432" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">表名</label>
+                            <input type="text" id="pgTable" class="w-full border rounded px-3 py-2" placeholder="gov_policies" required>
+                        </div>
+                        <div class="md:col-span-2 lg:col-span-3 flex justify-end mt-2">
+                            <button id="startDbBtn" class="btn-primary">
+                                <i class="fa fa-database"></i>
+                                启动数据库输出实例
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-500 mt-2">
+                        <i class="fa fa-info-circle text-blue-500 mr-1"></i>
+                        数据将直接保存到指定的PostgreSQL数据库中，如果表不存在将自动创建
+                    </div>
                 </div>
             </div>
             <div class="mb-6">
@@ -687,7 +745,6 @@
         renderCurrentConfig();
 
         // 其他原有功能保持不变
-        const startBtn = document.getElementById('startBtn');
         const clearBtn = document.getElementById('clearBtn');
         const outputContainer = document.getElementById('output');
         const outputAddressInput = document.getElementById('outputAddress');
@@ -861,36 +918,6 @@
         clearBtn.addEventListener('click', () => {
             outputContainer.innerHTML = '<div class="text-gray-400 italic">输出已清空</div>';
         });
-        startBtn.addEventListener('click', async () => {
-            const outputAddress = outputAddressInput.value.trim();
-            if (!outputAddress) {
-                alert('请输入输出地址');
-                return;
-            }
-            startBtn.disabled = true;
-            startBtn.classList.add('btn-disabled');
-            startBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 启动中...';
-            try {
-                const response = await fetch('http://localhost:8000/start_scrapy', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ address: outputAddress })
-                });
-                const data = await response.json();
-                if (data.status === 'success') {
-                    alert(`新实例已启动，PID: ${data.pid}`);
-                    loadInstances();
-                } else {
-                    alert('启动失败: ' + data.message);
-                }
-            } catch (error) {
-                alert('启动失败: ' + error.message);
-            } finally {
-                startBtn.disabled = false;
-                startBtn.classList.remove('btn-disabled');
-                startBtn.innerHTML = '<i class="fa fa-play"></i> 启动新实例';
-            }
-        });
         refreshBtn.addEventListener('click', loadInstances);
         loadInstances();
         setInterval(loadInstances, 5000);
@@ -932,6 +959,111 @@
                 importCsvBtn.disabled = false;
                 importCsvBtn.classList.remove('btn-disabled');
                 importCsvBtn.innerHTML = '<i class="fa fa-upload"></i> 导入CSV';
+            }
+        });
+
+        // 新增：输出模式切换逻辑
+        const fileOutputConfig = document.getElementById('fileOutputConfig');
+        const databaseOutputConfig = document.getElementById('databaseOutputConfig');
+        const outputModeRadios = document.querySelectorAll('input[name="outputMode"]');
+        const startFileBtn = document.getElementById('startFileBtn');
+        const startDbBtn = document.getElementById('startDbBtn');
+
+        // 输出模式切换
+        outputModeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.value === 'file') {
+                    fileOutputConfig.style.display = 'block';
+                    databaseOutputConfig.style.display = 'none';
+                } else {
+                    fileOutputConfig.style.display = 'none';
+                    databaseOutputConfig.style.display = 'block';
+                }
+            });
+        });
+
+        // 文件输出启动按钮
+        startFileBtn.addEventListener('click', async () => {
+            const outputAddress = document.getElementById('outputAddress').value.trim();
+            if (!outputAddress) {
+                alert('请输入输出地址');
+                return;
+            }
+            
+            startFileBtn.disabled = true;
+            startFileBtn.classList.add('btn-disabled');
+            startFileBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 启动中...';
+            
+            try {
+                const response = await fetch('http://localhost:8000/start_scrapy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address: outputAddress })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    alert(`文件输出实例已启动，PID: ${data.pid}\n输出文件: ${outputAddress}`);
+                    loadInstances();
+                } else {
+                    alert('启动失败: ' + data.message);
+                }
+            } catch (error) {
+                alert('启动失败: ' + error.message);
+            } finally {
+                startFileBtn.disabled = false;
+                startFileBtn.classList.remove('btn-disabled');
+                startFileBtn.innerHTML = '<i class="fa fa-play"></i> 启动文件输出实例';
+            }
+        });
+
+        // 数据库输出启动按钮
+        startDbBtn.addEventListener('click', async () => {
+            // 验证表单
+            const dbConfig = {
+                dbname: document.getElementById('pgDbname').value.trim(),
+                user: document.getElementById('pgUser').value.trim(),
+                password: document.getElementById('pgPassword').value.trim(),
+                host: document.getElementById('pgHost').value.trim(),
+                port: document.getElementById('pgPort').value.trim(),
+                table: document.getElementById('pgTable').value.trim()
+            };
+
+            // 检查必填字段
+            const requiredFields = ['dbname', 'user', 'password', 'host', 'port', 'table'];
+            for (let field of requiredFields) {
+                if (!dbConfig[field]) {
+                    alert(`请填写${field === 'dbname' ? '数据库名' : 
+                           field === 'user' ? '用户名' : 
+                           field === 'password' ? '密码' : 
+                           field === 'host' ? '主机地址' : 
+                           field === 'port' ? '端口' : '表名'}`);
+                    return;
+                }
+            }
+
+            startDbBtn.disabled = true;
+            startDbBtn.classList.add('btn-disabled');
+            startDbBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 启动中...';
+            
+            try {
+                const response = await fetch('http://localhost:8000/start_scrapy_postgres', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dbConfig)
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    alert(`数据库输出实例已启动，PID: ${data.pid}\n数据库: ${dbConfig.host}:${dbConfig.port}/${dbConfig.dbname}\n表名: ${dbConfig.table}`);
+                    loadInstances();
+                } else {
+                    alert('启动失败: ' + data.message);
+                }
+            } catch (error) {
+                alert('启动失败: ' + error.message);
+            } finally {
+                startDbBtn.disabled = false;
+                startDbBtn.classList.remove('btn-disabled');
+                startDbBtn.innerHTML = '<i class="fa fa-database"></i> 启动数据库输出实例';
             }
         });
     </script>

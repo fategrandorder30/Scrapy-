@@ -23,13 +23,29 @@ class GovPolicySpider(scrapy.Spider):
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'zh-CN,zh;q=0.8,en;q=0.6',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36',
+        },
+        'ITEM_PIPELINES': {
+            'config_policy_spider.pipelines.PostgreSQLPipeline': 300,
         }
     }
+
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super().from_crawler(crawler, *args, **kwargs)
+        spider.postgres_settings = {
+            'dbname': crawler.settings.get('POSTGRES_DBNAME', 'default_db'),
+            'user': crawler.settings.get('POSTGRES_USER', 'default_user'),
+            'password': crawler.settings.get('POSTGRES_PASSWORD', ''),
+            'host': crawler.settings.get('POSTGRES_HOST', 'localhost'),
+            'port': crawler.settings.get('POSTGRES_PORT', '5432'),
+            'table': crawler.settings.get('POSTGRES_TABLE', 'gov_policies')
+        }
+        crawler.settings.set('POSTGRES_SETTINGS', spider.postgres_settings)
+        return spider
 
     def start_requests(self):
         with open('config.json', encoding='utf-8') as f:
             cfg_list = json.load(f)
-        # 支持顺序爬取多个网站
         if not isinstance(cfg_list, list):
             self.logger.error("config.json 格式错误，需为列表包裹多个配置")
             return
